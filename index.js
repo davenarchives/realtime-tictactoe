@@ -11,7 +11,16 @@ app.use(express.static(__dirname));
 let players = { X: null, O: null };
 let board = Array(9).fill(null);
 let turn = "X";
-const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const lines = [
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  [0, 4, 8],
+  [2, 4, 6]
+];
 const playerMeta = new Map();
 
 function checkResult(b) {
@@ -33,6 +42,25 @@ function publicPlayers() {
     X: players.X ? { name: players.X.name } : null,
     O: players.O ? { name: players.O.name } : null
   };
+}
+
+function returnPlayersToLobby() {
+  const activePlayers = [players.X, players.O].filter(Boolean);
+  const ids = activePlayers.map((player) => player.id);
+
+  resetGame(false);
+
+  ids.forEach((id) => {
+    const meta = playerMeta.get(id);
+    if (meta) {
+      meta.symbol = null;
+      playerMeta.set(id, meta);
+    }
+  });
+
+  io.emit("series_reset");
+  io.emit("players", publicPlayers());
+  io.emit("state", { board, turn, result: null, players: publicPlayers() });
 }
 
 io.on("connection", (socket) => {
@@ -119,19 +147,23 @@ io.on("connection", (socket) => {
     io.emit("state", { board, turn, result: null, players: publicPlayers() });
   });
 
+  socket.on("series_exit", () => {
+    const meta = playerMeta.get(socket.id);
+    if (!meta || !meta.symbol) return;
+    if (!players[meta.symbol] || players[meta.symbol].id !== socket.id) return;
+    returnPlayersToLobby();
+  });
+
   socket.on("disconnect", () => {
     const meta = playerMeta.get(socket.id);
     const seat = meta && meta.symbol;
-    const wasSeated = seat && players[seat] && players[seat].id === socket.id;
+    const isSeated = seat && players[seat] && players[seat].id === socket.id;
 
-    if (wasSeated) {
-      players[seat] = null;
-      resetGame(true);
-      io.emit("state", { board, turn, result: null, players: publicPlayers() });
+    if (isSeated) {
+      returnPlayersToLobby();
     }
 
     playerMeta.delete(socket.id);
-
     if (!players.X && !players.O) {
       resetGame(false);
     }

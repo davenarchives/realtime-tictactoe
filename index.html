@@ -1,58 +1,103 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
+  <meta charset='utf-8' />
   <title>Realtime Tic-Tac-Toe</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel='preconnect' href='https://fonts.googleapis.com'>
+  <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+  <link href='https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Varela+Round&display=swap' rel='stylesheet'>
+  <link rel='stylesheet' href='style.css' />
 </head>
 <body>
-  <main class="container">
-    <h1>Realtime Tic-Tac-Toe</h1>
+  <main class='card'>
+    <header class='brand'>
+      <h1>Tic-Tac-Toe</h1>
+      <p id='status' class='status-line'><span id='status-text'></span></p>
+    </header>
 
-    <section id="lobby" class="panel">
-      <form id="join-form" autocomplete="off">
-        <label for="player-name">Enter your name:</label>
-        <div class="field">
-          <input id="player-name" name="player-name" type="text" maxlength="24" placeholder="Name" autofocus />
-          <button id="join-button" type="submit">Search for a player</button>
-        </div>
+    <section id='lobby' class='lobby'>
+      <form id='join-form' autocomplete='off' class='login'>
+        <label for='player-name'>Enter username:</label>
+        <input id='player-name' name='player-name' type='text' maxlength='24' placeholder='Player name' autofocus />
+        <button id='join-button' type='submit'>Search for a player</button>
       </form>
-      <p id="lobby-status" class="muted">Enter your name to join a match.</p>
+      <p id='lobby-status' class='lobby-status'>Enter your name to join a match.</p>
     </section>
 
-    <p id="status" class="muted">
-      <img id="loading" src="loading.gif" alt="" style="height:20px; vertical-align:middle;">
-      <span id="status-text">connecting.</span>
-    </p>
-
-    <section id="game" class="panel hidden">
-      <div id="board" class="board"></div>
-
-      <div class="row">
-        <button id="reset">Rematch</button>
+    <section id='game' class='game hidden' aria-live='polite'>
+      <div class='turnline'>
+        <span id='assignment'></span>
+        <strong id='turn-indicator'></strong>
       </div>
+
+      <div id='board' class='board' role='grid' aria-label='Tic Tac Toe board'></div>
+
+      <footer class='scoreboard' aria-label='Match scoreboard'>
+        <div class='score' id='score-x'>
+          <span class='label'><span class='tag-x'>Player X</span></span>
+          <span class='value'>0</span>
+        </div>
+        <div class='score' id='score-tie'>
+          <span class='label'>TIE</span>
+          <span class='value'>0</span>
+        </div>
+        <div class='score' id='score-o'>
+          <span class='label'><span class='tag-o'>Player O</span></span>
+          <span class='value'>0</span>
+        </div>
+      </footer>
     </section>
   </main>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <div id='series-modal' class='modal hidden' role='dialog' aria-modal='true' aria-labelledby='series-title'>
+    <div class='modal-content'>
+      <h2 id='series-title'>Series Winner!</h2>
+      <p id='series-message'></p>
+      <p id='series-status' class='series-status'></p>
+    </div>
+  </div>
+
+  <script src='/socket.io/socket.io.js'></script>
   <script>
     const socket = io();
-    const statusTextEl = document.getElementById("status-text");
-    const loadingEl = document.getElementById("loading");
-    const boardEl = document.getElementById("board");
-    const resetBtn = document.getElementById("reset");
-    const lobbyEl = document.getElementById("lobby");
-    const joinForm = document.getElementById("join-form");
-    const nameInput = document.getElementById("player-name");
-    const joinButton = document.getElementById("join-button");
-    const lobbyStatusEl = document.getElementById("lobby-status");
-    const gameEl = document.getElementById("game");
+
+    const statusTextEl = document.getElementById('status-text');
+    const boardEl = document.getElementById('board');
+    const lobbyEl = document.getElementById('lobby');
+    const joinForm = document.getElementById('join-form');
+    const nameInput = document.getElementById('player-name');
+    const joinButton = document.getElementById('join-button');
+    const lobbyStatusEl = document.getElementById('lobby-status');
+    const gameEl = document.getElementById('game');
+    const assignmentEl = document.getElementById('assignment');
+    const turnIndicatorEl = document.getElementById('turn-indicator');
+    const scoreXLabel = document.querySelector('#score-x .label');
+    const scoreTieLabel = document.querySelector('#score-tie .label');
+    const scoreOLabel = document.querySelector('#score-o .label');
+    const scoreXEl = document.querySelector('#score-x .value');
+    const scoreTieEl = document.querySelector('#score-tie .value');
+    const scoreOEl = document.querySelector('#score-o .value');
+    const seriesModalEl = document.getElementById('series-modal');
+    const seriesMessageEl = document.getElementById('series-message');
+    const seriesStatusEl = document.getElementById('series-status');
+
+    const AUTO_RESET_DELAY_MS = 1500;
+    const SERIES_EXIT_DELAY_MS = 3000;
+
+    function emptyState() {
+      return { board: Array(9).fill(null), turn: 'X', result: null };
+    }
 
     let me = null;
-    let myName = "";
-    let state = { board: Array(9).fill(null), turn: "X", result: null };
+    let myName = '';
+    let state = emptyState();
     let playerNames = { X: null, O: null };
     let searching = false;
+    let scoreboard = { X: 0, O: 0, tie: 0 };
+    let autoResetTimer = null;
+    let seriesExitTimer = null;
+
+    statusTextEl.textContent = 'Enter your name to join a match.';
 
     function sanitizePlayers(players = {}) {
       return {
@@ -61,190 +106,399 @@
       };
     }
 
-    function showSpinner(show) {
-      loadingEl.style.visibility = show ? "visible" : "hidden";
+    function playerLabel(symbol) {
+      if (symbol === 'X') return playerNames.X || 'Player X';
+      if (symbol === 'O') return playerNames.O || 'Player O';
+      return '';
+    }
+
+    function opponentSymbol(symbol) {
+      if (symbol === 'X') return 'O';
+      if (symbol === 'O') return 'X';
+      return null;
+    }
+
+    function clearAutoResetTimer() {
+      if (autoResetTimer) {
+        clearTimeout(autoResetTimer);
+        autoResetTimer = null;
+      }
+    }
+
+    function scheduleAutoReset() {
+      clearAutoResetTimer();
+      autoResetTimer = setTimeout(() => {
+        socket.emit('reset');
+        autoResetTimer = null;
+      }, AUTO_RESET_DELAY_MS);
+    }
+
+    function clearSeriesExitTimer() {
+      if (seriesExitTimer) {
+        clearTimeout(seriesExitTimer);
+        seriesExitTimer = null;
+      }
+    }
+
+    function setSeriesStatus(text = '') {
+      if (seriesStatusEl) {
+        seriesStatusEl.textContent = text;
+      }
+    }
+
+    function scheduleSeriesExit() {
+      clearSeriesExitTimer();
+      setSeriesStatus('Returning to matchmaking...');
+      seriesExitTimer = setTimeout(() => {
+        seriesExitTimer = null;
+        socket.emit('series_exit');
+      }, SERIES_EXIT_DELAY_MS);
+    }
+
+    function hideSeriesModal() {
+      if (seriesModalEl) {
+        seriesModalEl.classList.add('hidden');
+      }
+      setSeriesStatus('');
+    }
+
+    function updateScoreboardLabels() {
+      const xName = playerLabel('X');
+      const oName = playerLabel('O');
+      scoreXLabel.innerHTML = `${xName}<span class="tag-x">(X)</span>`;
+      scoreTieLabel.textContent = 'TIE';
+      scoreOLabel.innerHTML = `${oName}<span class="tag-o">(O)</span>`;
+    }
+
+    function updateScoreboardDisplay() {
+      scoreXEl.textContent = scoreboard.X;
+      scoreTieEl.textContent = scoreboard.tie;
+      scoreOEl.textContent = scoreboard.O;
+    }
+
+    function resetScoreboard() {
+      scoreboard = { X: 0, O: 0, tie: 0 };
+      updateScoreboardDisplay();
+      clearSeriesExitTimer();
+      hideSeriesModal();
     }
 
     function updateLobbyStatus(message) {
-      if (message) {
-        lobbyStatusEl.textContent = message;
-        return;
-      }
+      const ready = Boolean(playerNames.X && playerNames.O);
+      let text = message || '';
 
-      if (me) {
-        const other = me === "X" ? "O" : "X";
-        if (playerNames[other]) {
-          lobbyStatusEl.textContent = `Matched with ${playerNames[other]}.`;
+      if (!text) {
+        if (me) {
+          if (ready) {
+            const opponent = me === 'X' ? playerNames.O : playerNames.X;
+            text = opponent ? `Matched with ${opponent}.` : 'Waiting for another player to join...';
+          } else if (searching) {
+            text = 'Searching for a player...';
+          } else {
+            text = 'Enter your name to join a match.';
+          }
+        } else if (searching) {
+          text = 'Searching for a player...';
+        } else if (playerNames.X || playerNames.O) {
+          const waiting = playerNames.X || playerNames.O || 'A player';
+          text = `${waiting} is waiting for an opponent.`;
         } else {
-          lobbyStatusEl.textContent = "Waiting for another player to join...";
+          text = 'Enter your name to join a match.';
         }
-        return;
       }
 
-      if (searching) {
-        lobbyStatusEl.textContent = "Searching for a player...";
-        return;
+      lobbyStatusEl.textContent = text;
+      if (gameEl.classList.contains('hidden')) {
+        statusTextEl.textContent = text;
       }
-
-      const occupied = ["X", "O"]
-        .filter(symbol => playerNames[symbol])
-        .map(symbol => `${symbol}: ${playerNames[symbol]}`);
-
-      lobbyStatusEl.textContent = occupied.length
-        ? `Current players: ${occupied.join(" vs ")}`
-        : "Enter your name to join a match.";
     }
 
     function updateGameVisibility() {
-      const playersReady = Boolean(playerNames.X && playerNames.O);
-      const playing = playersReady && (me === "X" || me === "O");
-      const spectatingReadyMatch = playersReady && !me && !searching;
+      const ready = Boolean(playerNames.X && playerNames.O);
+      const playing = ready && (me === 'X' || me === 'O');
+      const spectating = ready && !me && !searching;
+      const showGame = playing || spectating;
 
-      lobbyEl.classList.toggle("matched", Boolean(me));
+      lobbyEl.classList.toggle('matched', ready);
+      gameEl.classList.toggle('hidden', !showGame);
+      boardEl.style.pointerEvents = showGame && !state.result ? 'auto' : 'none';
 
-      if (playing || spectatingReadyMatch) {
-        gameEl.classList.remove("hidden");
-      } else {
-        gameEl.classList.add("hidden");
+      if (showGame) {
+        statusTextEl.textContent = '';
       }
+    }
+
+    function renderAssignment() {
+      if (!me || !playerNames.X || !playerNames.O) {
+        assignmentEl.textContent = '';
+        return;
+      }
+      const colorClass = me === 'X' ? 'tag-x' : 'tag-o';
+      assignmentEl.innerHTML = `You are playing as <span class="${colorClass}">${me}</span>`;
+    }
+
+    function renderTurnIndicator() {
+      if (state.result) {
+        if (state.result === 'Draw') {
+          turnIndicatorEl.textContent = "It's a draw";
+        } else {
+          const cls = state.result === 'X' ? 'tag-x' : 'tag-o';
+          turnIndicatorEl.innerHTML = `<span class="${cls}">${state.result}</span> wins!`;
+        }
+        return;
+      }
+      const cls = state.turn === 'X' ? 'tag-x' : 'tag-o';
+      turnIndicatorEl.innerHTML = `<span class="${cls}">${state.turn}</span>'s turn`;
+    }
+
+    function drawBoard() {
+      boardEl.innerHTML = '';
+      state.board.forEach((value, index) => {
+        const cell = document.createElement('button');
+        cell.className = 'cell';
+
+        if (value) {
+          cell.textContent = value.toLowerCase();
+          cell.classList.add(value === 'X' ? 'is-x' : 'is-o');
+        }
+
+        const canPlay = !value && me && state.turn === me && !state.result;
+        cell.disabled = !canPlay;
+        if (!canPlay && !value) cell.classList.add('muted');
+
+        cell.addEventListener('click', () => socket.emit('move', index));
+        boardEl.appendChild(cell);
+      });
     }
 
     function draw() {
-      const playersReady = Boolean(playerNames.X && playerNames.O);
-
-      if (!playersReady) {
-        boardEl.innerHTML = "";
-        statusTextEl.textContent = "";
-        updateGameVisibility();
-        return;
-      }
-
-      boardEl.innerHTML = "";
-      state.board.forEach((v, i) => {
-        const cell = document.createElement("button");
-        cell.className = "cell" + ((state.turn !== me || state.result) ? " muted" : "");
-        cell.textContent = v || "";
-        cell.onclick = () => socket.emit("move", i);
-        boardEl.appendChild(cell);
-      });
-
-      const myLabel = me ? (playerNames[me] || myName || "") : "";
-      const seat = me ? `You are ${me}${myLabel ? " (" + myLabel + ")" : ""}. ` : "You're spectating. ";
-      const turn = state.result ? "" : `Turn: ${state.turn}${playerNames[state.turn] ? " (" + playerNames[state.turn] + ")" : ""}. `;
-      const result = state.result
-        ? (state.result === "Draw"
-          ? "It's a draw!"
-          : `Winner: ${state.result}${playerNames[state.result] ? " (" + playerNames[state.result] + ")" : ""}`)
-        : "";
-
-      statusTextEl.textContent = seat + turn + result;
+      renderAssignment();
+      renderTurnIndicator();
+      drawBoard();
       updateGameVisibility();
+      updateLobbyStatus();
+      updateScoreboardLabels();
+      updateScoreboardDisplay();
     }
 
-    joinForm.addEventListener("submit", (event) => {
+    function announceSeriesWinner(symbol) {
+      if (!seriesModalEl || !seriesMessageEl) {
+        return;
+      }
+      clearAutoResetTimer();
+      clearSeriesExitTimer();
+
+      const opponent = opponentSymbol(symbol);
+      const winnerName = playerLabel(symbol);
+      const opponentName = playerLabel(opponent);
+      const winnerScore = scoreboard[symbol];
+      const opponentScore = opponent ? scoreboard[opponent] : 0;
+
+      let summary = `${winnerName} wins the series!`;
+      if (opponentName) {
+        summary = `${winnerName} wins the series ${winnerScore}-${opponentScore}!`;
+      }
+
+      seriesMessageEl.textContent = summary;
+      seriesModalEl.classList.remove('hidden');
+      scheduleSeriesExit();
+    }
+
+    function handleResult(result) {
+      if (result === 'X' || result === 'O') {
+        scoreboard[result] += 1;
+        updateScoreboardDisplay();
+        if (scoreboard[result] >= 5) {
+          announceSeriesWinner(result);
+          return;
+        }
+        scheduleAutoReset();
+      } else if (result === 'Draw') {
+        scoreboard.tie += 1;
+        updateScoreboardDisplay();
+        scheduleAutoReset();
+      } else {
+        updateScoreboardDisplay();
+      }
+    }
+
+    joinForm.addEventListener('submit', (event) => {
       event.preventDefault();
       const name = nameInput.value.trim();
       if (!name) {
-        updateLobbyStatus("Please enter your name.");
+        updateLobbyStatus('Please enter your name.');
         nameInput.focus();
         return;
       }
-
       myName = name;
       searching = true;
       joinButton.disabled = true;
       nameInput.disabled = true;
-      showSpinner(true);
-      socket.emit("join", { name });
+      statusTextEl.textContent = 'Searching for a player...';
+      socket.emit('join', { name });
       updateLobbyStatus();
-      updateGameVisibility();
     });
 
-    socket.on("init", (payload = {}) => {
-      if (Array.isArray(payload.board)) state.board = payload.board;
-      if (typeof payload.turn !== "undefined") state.turn = payload.turn;
-      state.result = payload.result || null;
-      me = payload.yourSymbol || null;
+    socket.on('init', (payload = {}) => {
+      statusTextEl.textContent = '';
+      state = {
+        board: Array.isArray(payload.board) ? payload.board.slice() : emptyState().board,
+        turn: payload.turn || 'X',
+        result: payload.result || null
+      };
+      me = payload.yourSymbol;
       playerNames = sanitizePlayers(payload.players);
+      resetScoreboard();
       searching = false;
-      showSpinner(false);
-      updateLobbyStatus();
       draw();
     });
 
-    socket.on("joined", (payload = {}) => {
+    socket.on('joined', (payload = {}) => {
+      state = {
+        board: Array.isArray(payload.board) ? payload.board.slice() : emptyState().board,
+        turn: payload.turn || 'X',
+        result: payload.result || null
+      };
       me = payload.yourSymbol;
-      state.board = payload.board;
-      state.turn = payload.turn;
-      state.result = payload.result || null;
       playerNames = sanitizePlayers(payload.players);
       myName = payload.name || myName;
       searching = false;
       joinButton.disabled = false;
       nameInput.disabled = false;
-      showSpinner(false);
-      updateLobbyStatus();
+      resetScoreboard();
       draw();
     });
 
-    socket.on("waiting", (payload = {}) => {
+    socket.on('waiting', ({ message } = {}) => {
       searching = true;
       joinButton.disabled = false;
       nameInput.disabled = false;
-      showSpinner(false);
-      updateLobbyStatus(payload.message || "Game already has two players. Waiting for a seat...");
-      updateGameVisibility();
+      statusTextEl.textContent = 'Waiting for a seat...';
+      updateLobbyStatus(message || 'Game already has two players. Waiting for a seat...');
     });
 
-    socket.on("join_error", (payload = {}) => {
+    socket.on('join_error', ({ message } = {}) => {
       searching = false;
       joinButton.disabled = false;
       nameInput.disabled = false;
-      showSpinner(false);
-      updateLobbyStatus(payload.message || "Unable to join the match.");
-      updateGameVisibility();
+      statusTextEl.textContent = 'Unable to join.';
+      updateLobbyStatus(message || 'Unable to join the match.');
     });
 
-    socket.on("players", (players = {}) => {
+    socket.on('players', (players = {}) => {
       playerNames = sanitizePlayers(players);
-      updateLobbyStatus();
       draw();
     });
 
-    socket.on("state", (newState = {}) => {
-      if (Array.isArray(newState.board)) state.board = newState.board;
-      if (typeof newState.turn !== "undefined") state.turn = newState.turn;
+    socket.on('series_reset', () => {
+      clearAutoResetTimer();
+      clearSeriesExitTimer();
+      resetScoreboard();
+      state = emptyState();
+      playerNames = { X: null, O: null };
+      me = null;
+      myName = '';
+      searching = false;
+      joinButton.disabled = false;
+      nameInput.disabled = false;
+      nameInput.value = '';
+      lobbyEl.classList.remove('matched');
+      statusTextEl.textContent = 'Enter your name to join a match.';
+      updateLobbyStatus('Enter your name to join a match.');
+      draw();
+    });
+
+    socket.on('state', (newState = {}) => {
+      const previousResult = state.result;
+      if (Array.isArray(newState.board)) state.board = newState.board.slice();
+      if (typeof newState.turn === 'string' || newState.turn === null) state.turn = newState.turn || 'X';
       state.result = newState.result || null;
       if (newState.players) playerNames = sanitizePlayers(newState.players);
+
+      if (!state.result) {
+        clearAutoResetTimer();
+        if (previousResult) {
+          clearSeriesExitTimer();
+          hideSeriesModal();
+        }
+      }
+
+      if (!previousResult && state.result) {
+        handleResult(state.result);
+      }
+
       draw();
     });
 
-    socket.on("disconnect", () => {
+    socket.on('disconnect', () => {
+      statusTextEl.textContent = 'Disconnected. Attempting to reconnect...';
       me = null;
       searching = false;
       joinButton.disabled = false;
       nameInput.disabled = false;
-      updateLobbyStatus("Disconnected. Attempting to reconnect...");
-      showSpinner(true);
-      updateGameVisibility();
+      lobbyEl.classList.remove('matched');
+      updateLobbyStatus();
     });
 
-    socket.io.on("reconnect", () => {
+    socket.io.on('reconnect', () => {
       if (myName) {
-        searching = true;
+        statusTextEl.textContent = 'Reconnecting...';
         joinButton.disabled = true;
         nameInput.disabled = true;
-        updateLobbyStatus("Reconnecting to the match...");
-        showSpinner(true);
-        socket.emit("join", { name: myName });
+        socket.emit('join', { name: myName });
       } else {
-        showSpinner(false);
-        updateLobbyStatus();
+        statusTextEl.textContent = 'Enter your name to join a match.';
       }
-      updateGameVisibility();
     });
-
-    resetBtn.onclick = () => socket.emit("reset");
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
