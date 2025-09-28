@@ -1,4 +1,4 @@
-Ã¯Â»Â¿:root {
+:root {
   --color-x: #e32c2c;
   --color-o: #247fcf;
   --color-line: #0f0f0f;
@@ -17,7 +17,11 @@ body {
   align-items: center;
   justify-content: center;
   padding: clamp(36px, 8vw, 64px);
-  background: #ffffff url("grid-background.png") 0 0 / 720px 720px repeat;
+  background-color: #fffdf8;
+  background-image: url("grid-background.png");
+  background-position: center;
+  background-size: 135px 135px;
+  background-repeat: repeat;
   font-family: 'Varela Round', 'Segoe UI', sans-serif;
   color: var(--color-text);
 }
@@ -36,12 +40,47 @@ body {
 
 .brand h1 {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.12em, 0.9vw, 0.24em);
   font-family: 'Luckiest Guy', cursive;
-  font-size: clamp(2.8rem, 7.6vw, 3.4rem);
+  font-size: clamp(3.2rem, 9vw, 4.2rem);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-line);
+  line-height: 0.92;
 }
+
+.logo-word,
+.logo-divider {
+  display: inline-block;
+  line-height: 0.92;
+  -webkit-text-stroke: clamp(2px, 0.6vw, 4px) var(--color-line);
+  text-shadow:
+    -3px -3px 0 var(--color-line),
+    3px -3px 0 var(--color-line),
+    -3px 3px 0 var(--color-line),
+    3px 3px 0 var(--color-line),
+    0 -3px 0 var(--color-line),
+    0 3px 0 var(--color-line),
+    -3px 0 0 var(--color-line),
+    3px 0 0 var(--color-line);
+}
+
+.logo-word--tic,
+.logo-word--toe {
+  color: var(--color-x);
+}
+
+.logo-word--tac {
+  color: var(--color-o);
+}
+
+.logo-divider {
+  margin-inline: clamp(0.05em, 0.36vw, 0.12em);
+  color: #f8f9fb;
+}
+
 
 .status-line {
   margin: 12px 0 0;
@@ -164,15 +203,15 @@ button:not(.cell):disabled {
     linear-gradient(90deg, var(--color-line), var(--color-line)),
     linear-gradient(90deg, var(--color-line), var(--color-line));
   background-size:
-    4px 100%,
-    4px 100%,
-    100% 4px,
-    100% 4px;
+    6px 100%,
+    6px 100%,
+    100% 6px,
+    100% 6px;
   background-position:
-    calc(33.333% - 2px) 0,
-    calc(66.666% - 2px) 0,
-    0 calc(33.333% - 2px),
-    0 calc(66.666% - 2px);
+    calc(33.333% - 3px) 0,
+    calc(66.666% - 3px) 0,
+    0 calc(33.333% - 3px),
+    0 calc(66.666% - 3px);
   background-repeat: no-repeat;
   border-radius: inherit;
 }
@@ -184,10 +223,10 @@ button:not(.cell):disabled {
   align-items: center;
   justify-content: center;
   font-family: 'Varela Round', sans-serif;
-  font-weight: 700;
-  font-size: clamp(2.8rem, 8vw, 3.8rem);
+  font-weight: 800;
+  font-size: clamp(3.6rem, 11vw, 5rem);
   text-transform: lowercase;
-  line-height: 1;
+  line-height: 0.9;
   color: transparent;
   cursor: pointer;
   transition: transform 0.15s ease;
@@ -200,19 +239,19 @@ button:not(.cell):disabled {
 .cell.is-x {
   color: var(--color-x);
   text-shadow:
-    -2px -2px 0 var(--color-line),
-    2px -2px 0 var(--color-line),
-    -2px 2px 0 var(--color-line),
-    2px 2px 0 var(--color-line);
+    -3px -3px 0 var(--color-line),
+    3px -3px 0 var(--color-line),
+    -3px 3px 0 var(--color-line),
+    3px 3px 0 var(--color-line);
 }
 
 .cell.is-o {
   color: var(--color-o);
   text-shadow:
-    -2px -2px 0 var(--color-line),
-    2px -2px 0 var(--color-line),
-    -2px 2px 0 var(--color-line),
-    2px 2px 0 var(--color-line);
+    -3px -3px 0 var(--color-line),
+    3px -3px 0 var(--color-line),
+    -3px 3px 0 var(--color-line),
+    3px 3px 0 var(--color-line);
 }
 
 .scoreboard {
@@ -291,5 +330,4 @@ button:not(.cell):disabled {
   font-size: 1.05rem;
   color: var(--color-text);
 }
-
 
