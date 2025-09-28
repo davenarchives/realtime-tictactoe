@@ -103,7 +103,8 @@ body {
 }
 
 .lobby .login {
-  width: 100%;
+  width: min(var(--board-size), 100%);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -160,7 +161,8 @@ button:not(.cell):disabled {
 }
 
 .game {
-  width: 100%;
+  width: min(var(--board-size), 100%);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -326,12 +328,55 @@ button:not(.cell):disabled {
 
 @media (max-width: 540px) {
   :root { --board-size: min(320px, 88vw); }
-}
 
+  body {
+    padding: 24px 12px;
+    align-items: flex-start;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 360px;
+    gap: 18px;
+  }
+
+  .brand h1 {
+    font-size: clamp(2.8rem, 11vw, 3.4rem);
+  }
+
+  .lobby {
+    width: 100%;
+    gap: 16px;
+  }
+
+  .lobby .login {
+    width: min(var(--board-size), 90vw);
+  }
+
+  .login input,
+  button:not(.cell) {
+    font-size: 1rem;
+  }
+
+  .game {
+    gap: 18px;
+  }
+
+  .turnline strong {
+    font-size: 1.2rem;
+  }
+
+  .scoreboard {
+    font-size: 0.92rem;
+  }
+
+  .score .value {
+    font-size: 1.1rem;
+  }
+}
 .status-line { display: none; }
 .series-status {
   margin: 8px 0 0;
   font-size: 1.05rem;
   color: var(--color-text);
 }
-

@@ -199,12 +199,12 @@
             const opponent = me === 'X' ? playerNames.O : playerNames.X;
             text = opponent ? `Matched with ${opponent}.` : 'Waiting for another player to join...';
           } else if (searching) {
-            text = 'Searching for a player...';
+            text = 'Searching for an opponent.';
           } else {
             text = 'Enter your name to join a match.';
           }
         } else if (searching) {
-          text = 'Searching for a player...';
+          text = 'Searching for an opponent.';
         } else if (playerNames.X || playerNames.O) {
           const xName = playerNames.X;
           const oName = playerNames.O;
@@ -346,7 +346,7 @@
       searching = true;
       joinButton.disabled = true;
       nameInput.disabled = true;
-      statusTextEl.textContent = 'Searching for a player...';
+      statusTextEl.textContent = 'Searching for an opponent.';
       socket.emit('join', { name });
       updateLobbyStatus();
     });
@@ -465,5 +465,3 @@
   </script>
 </body>
 </html>
-
-
