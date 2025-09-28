@@ -21,7 +21,7 @@ body {
   background-color: #fffdf8;
   background-image: url("grid-background.png");
   background-position: center;
-  background-size: 135px 135px;
+  background-size: 700px 700px;
   background-repeat: repeat;
   font-family: 'Varela Round', 'Segoe UI', sans-serif;
   color: var(--color-text);
