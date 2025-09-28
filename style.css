@@ -3,6 +3,7 @@
   --color-o: #247fcf;
   --color-line: #0f0f0f;
   --color-text: #1f1f1f;
+  --board-size: min(360px, 82vw);
   --color-muted: #5a5a5a;
 }
 
@@ -184,7 +185,8 @@ button:not(.cell):disabled {
 .tag-o, .as-o { color: var(--color-o); font-weight: 700; }
 
 .board {
-  width: min(360px, 82vw);
+  width: var(--board-size);
+  margin: 0 auto;
   aspect-ratio: 1;
   position: relative;
   display: grid;
@@ -256,7 +258,8 @@ button:not(.cell):disabled {
 }
 
 .scoreboard {
-  width: 100%;
+  width: var(--board-size);
+  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   gap: 16px;
@@ -322,7 +325,7 @@ button:not(.cell):disabled {
 .muted { opacity: 0.75; }
 
 @media (max-width: 540px) {
-  .board { width: min(320px, 88vw); }
+  :root { --board-size: min(320px, 88vw); }
 }
 
 .status-line { display: none; }

@@ -206,8 +206,14 @@
         } else if (searching) {
           text = 'Searching for a player...';
         } else if (playerNames.X || playerNames.O) {
-          const waiting = playerNames.X || playerNames.O || 'A player';
-          text = `${waiting} is waiting for an opponent.`;
+          const xName = playerNames.X;
+          const oName = playerNames.O;
+          if (xName && oName) {
+            text = `Watching ${xName} and ${oName}'s match.`;
+          } else {
+            const waiting = xName || oName || 'A player';
+            text = `${waiting} is waiting for an opponent.`;
+          }
         } else {
           text = 'Enter your name to join a match.';
         }
@@ -459,4 +465,5 @@
   </script>
 </body>
 </html>
+
 
