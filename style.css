@@ -2,13 +2,57 @@
 body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
 h1 { margin-top: 0; }
 .muted { opacity: 0.7; }
+.hidden { display: none !important; }
 .row { margin-top: 12px; }
+
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.panel { margin-bottom: 24px; }
+#lobby label { font-weight: 600; }
+#lobby .field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+#lobby input[type="text"] {
+  padding: 8px 10px;
+  font-size: 16px;
+  min-width: 180px;
+  border: 1px solid #888;
+  border-radius: 4px;
+}
+#lobby-status { margin-top: 8px; }
+#lobby.matched { opacity: 0.85; }
+#lobby.matched form { display: none; }
+#lobby.matched #lobby-status { margin-top: 0; }
+
+button { padding: 8px 12px; cursor: pointer; }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+#join-button,
+#reset {
+  border: none;
+  border-radius: 4px;
+  background: #111;
+  color: #fff;
+  padding: 10px 18px;
+}
+#join-button:hover:not(:disabled),
+#reset:hover:not(:disabled) {
+  background: #222;
+}
 
 .board {
   display: grid;
   grid-template-columns: repeat(3, var(--size));
   gap: var(--gap);
-  margin-top: 12px;
+  margin: 12px auto 0;
 }
 
 .cell {
@@ -21,6 +65,6 @@ h1 { margin-top: 0; }
   justify-content: center;
   cursor: pointer;
   background: white;
+  color: #111;
 }
 .cell:disabled, .muted { cursor: not-allowed; }
-button { padding: 8px 12px; }

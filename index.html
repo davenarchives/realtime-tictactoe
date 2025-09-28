@@ -6,31 +6,119 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Realtime Tic-Tac-Toe</h1>
+  <main class="container">
+    <h1>Realtime Tic-Tac-Toe</h1>
 
-  <p id="status" class="muted">
-    <img id="loading" src="loading.gif" alt="" style="height:20px; vertical-align:middle;">
-    connecting…
-  </p>
+    <section id="lobby" class="panel">
+      <form id="join-form" autocomplete="off">
+        <label for="player-name">Enter your name:</label>
+        <div class="field">
+          <input id="player-name" name="player-name" type="text" maxlength="24" placeholder="Name" autofocus />
+          <button id="join-button" type="submit">Search for a player</button>
+        </div>
+      </form>
+      <p id="lobby-status" class="muted">Enter your name to join a match.</p>
+    </section>
 
-  <div id="board" class="board"></div>
+    <p id="status" class="muted">
+      <img id="loading" src="loading.gif" alt="" style="height:20px; vertical-align:middle;">
+      <span id="status-text">connecting.</span>
+    </p>
 
-  <div class="row">
-    <button id="reset">Rematch</button>
-  </div>
+    <section id="game" class="panel hidden">
+      <div id="board" class="board"></div>
+
+      <div class="row">
+        <button id="reset">Rematch</button>
+      </div>
+    </section>
+  </main>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const statusEl = document.getElementById("status");
+    const statusTextEl = document.getElementById("status-text");
     const loadingEl = document.getElementById("loading");
     const boardEl = document.getElementById("board");
     const resetBtn = document.getElementById("reset");
+    const lobbyEl = document.getElementById("lobby");
+    const joinForm = document.getElementById("join-form");
+    const nameInput = document.getElementById("player-name");
+    const joinButton = document.getElementById("join-button");
+    const lobbyStatusEl = document.getElementById("lobby-status");
+    const gameEl = document.getElementById("game");
 
     let me = null;
-    let state = { board: Array(9).fill(null), turn: 'X', result: null };
+    let myName = "";
+    let state = { board: Array(9).fill(null), turn: "X", result: null };
+    let playerNames = { X: null, O: null };
+    let searching = false;
+
+    function sanitizePlayers(players = {}) {
+      return {
+        X: players.X && players.X.name ? players.X.name : null,
+        O: players.O && players.O.name ? players.O.name : null
+      };
+    }
+
+    function showSpinner(show) {
+      loadingEl.style.visibility = show ? "visible" : "hidden";
+    }
+
+    function updateLobbyStatus(message) {
+      if (message) {
+        lobbyStatusEl.textContent = message;
+        return;
+      }
+
+      if (me) {
+        const other = me === "X" ? "O" : "X";
+        if (playerNames[other]) {
+          lobbyStatusEl.textContent = `Matched with ${playerNames[other]}.`;
+        } else {
+          lobbyStatusEl.textContent = "Waiting for another player to join...";
+        }
+        return;
+      }
+
+      if (searching) {
+        lobbyStatusEl.textContent = "Searching for a player...";
+        return;
+      }
+
+      const occupied = ["X", "O"]
+        .filter(symbol => playerNames[symbol])
+        .map(symbol => `${symbol}: ${playerNames[symbol]}`);
+
+      lobbyStatusEl.textContent = occupied.length
+        ? `Current players: ${occupied.join(" vs ")}`
+        : "Enter your name to join a match.";
+    }
+
+    function updateGameVisibility() {
+      const playersReady = Boolean(playerNames.X && playerNames.O);
+      const playing = playersReady && (me === "X" || me === "O");
+      const spectatingReadyMatch = playersReady && !me && !searching;
+
+      lobbyEl.classList.toggle("matched", Boolean(me));
+
+      if (playing || spectatingReadyMatch) {
+        gameEl.classList.remove("hidden");
+      } else {
+        gameEl.classList.add("hidden");
+      }
+    }
 
     function draw() {
+      const playersReady = Boolean(playerNames.X && playerNames.O);
+
+      if (!playersReady) {
+        boardEl.innerHTML = "";
+        statusTextEl.textContent = "";
+        updateGameVisibility();
+        return;
+      }
+
       boardEl.innerHTML = "";
       state.board.forEach((v, i) => {
         const cell = document.createElement("button");
@@ -40,25 +128,120 @@
         boardEl.appendChild(cell);
       });
 
-      const seat = me ? `You are ${me}. ` : "You're spectating. ";
-      const turn = state.result ? "" : `Turn: ${state.turn}. `;
-      const result = state.result ? (state.result === "Draw" ? "It's a draw!" : `Winner: ${state.result}`) : "";
-      statusEl.textContent = seat + turn + result;
+      const myLabel = me ? (playerNames[me] || myName || "") : "";
+      const seat = me ? `You are ${me}${myLabel ? " (" + myLabel + ")" : ""}. ` : "You're spectating. ";
+      const turn = state.result ? "" : `Turn: ${state.turn}${playerNames[state.turn] ? " (" + playerNames[state.turn] + ")" : ""}. `;
+      const result = state.result
+        ? (state.result === "Draw"
+          ? "It's a draw!"
+          : `Winner: ${state.result}${playerNames[state.result] ? " (" + playerNames[state.result] + ")" : ""}`)
+        : "";
+
+      statusTextEl.textContent = seat + turn + result;
+      updateGameVisibility();
     }
 
-    socket.on("init", (payload) => {
-      me = payload.yourSymbol;                 
-      state.board = payload.board;
-      state.turn = payload.turn;
-      draw();
-      loadingEl.style.display = "none";
+    joinForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = nameInput.value.trim();
+      if (!name) {
+        updateLobbyStatus("Please enter your name.");
+        nameInput.focus();
+        return;
+      }
+
+      myName = name;
+      searching = true;
+      joinButton.disabled = true;
+      nameInput.disabled = true;
+      showSpinner(true);
+      socket.emit("join", { name });
+      updateLobbyStatus();
+      updateGameVisibility();
     });
 
-    socket.on("players", () => draw());
-
-    socket.on("state", (newState) => {
-      state = newState;
+    socket.on("init", (payload = {}) => {
+      if (Array.isArray(payload.board)) state.board = payload.board;
+      if (typeof payload.turn !== "undefined") state.turn = payload.turn;
+      state.result = payload.result || null;
+      me = payload.yourSymbol || null;
+      playerNames = sanitizePlayers(payload.players);
+      searching = false;
+      showSpinner(false);
+      updateLobbyStatus();
       draw();
+    });
+
+    socket.on("joined", (payload = {}) => {
+      me = payload.yourSymbol;
+      state.board = payload.board;
+      state.turn = payload.turn;
+      state.result = payload.result || null;
+      playerNames = sanitizePlayers(payload.players);
+      myName = payload.name || myName;
+      searching = false;
+      joinButton.disabled = false;
+      nameInput.disabled = false;
+      showSpinner(false);
+      updateLobbyStatus();
+      draw();
+    });
+
+    socket.on("waiting", (payload = {}) => {
+      searching = true;
+      joinButton.disabled = false;
+      nameInput.disabled = false;
+      showSpinner(false);
+      updateLobbyStatus(payload.message || "Game already has two players. Waiting for a seat...");
+      updateGameVisibility();
+    });
+
+    socket.on("join_error", (payload = {}) => {
+      searching = false;
+      joinButton.disabled = false;
+      nameInput.disabled = false;
+      showSpinner(false);
+      updateLobbyStatus(payload.message || "Unable to join the match.");
+      updateGameVisibility();
+    });
+
+    socket.on("players", (players = {}) => {
+      playerNames = sanitizePlayers(players);
+      updateLobbyStatus();
+      draw();
+    });
+
+    socket.on("state", (newState = {}) => {
+      if (Array.isArray(newState.board)) state.board = newState.board;
+      if (typeof newState.turn !== "undefined") state.turn = newState.turn;
+      state.result = newState.result || null;
+      if (newState.players) playerNames = sanitizePlayers(newState.players);
+      draw();
+    });
+
+    socket.on("disconnect", () => {
+      me = null;
+      searching = false;
+      joinButton.disabled = false;
+      nameInput.disabled = false;
+      updateLobbyStatus("Disconnected. Attempting to reconnect...");
+      showSpinner(true);
+      updateGameVisibility();
+    });
+
+    socket.io.on("reconnect", () => {
+      if (myName) {
+        searching = true;
+        joinButton.disabled = true;
+        nameInput.disabled = true;
+        updateLobbyStatus("Reconnecting to the match...");
+        showSpinner(true);
+        socket.emit("join", { name: myName });
+      } else {
+        showSpinner(false);
+        updateLobbyStatus();
+      }
+      updateGameVisibility();
     });
 
     resetBtn.onclick = () => socket.emit("reset");
