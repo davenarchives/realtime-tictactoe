@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Realtime Tic-Tac-Toe</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Realtime Tic-Tac-Toe</h1>
+
+  <p id="status" class="muted">
+    <img id="loading" src="loading.gif" alt="" style="height:20px; vertical-align:middle;">
+    connecting…
+  </p>
+
+  <div id="board" class="board"></div>
+
+  <div class="row">
+    <button id="reset">Rematch</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const statusEl = document.getElementById("status");
+    const loadingEl = document.getElementById("loading");
+    const boardEl = document.getElementById("board");
+    const resetBtn = document.getElementById("reset");
+
+    let me = null;
+    let state = { board: Array(9).fill(null), turn: 'X', result: null };
+
+    function draw() {
+      boardEl.innerHTML = "";
+      state.board.forEach((v, i) => {
+        const cell = document.createElement("button");
+        cell.className = "cell" + ((state.turn !== me || state.result) ? " muted" : "");
+        cell.textContent = v || "";
+        cell.onclick = () => socket.emit("move", i);
+        boardEl.appendChild(cell);
+      });
+
+      const seat = me ? `You are ${me}. ` : "You're spectating. ";
+      const turn = state.result ? "" : `Turn: ${state.turn}. `;
+      const result = state.result ? (state.result === "Draw" ? "It's a draw!" : `Winner: ${state.result}`) : "";
+      statusEl.textContent = seat + turn + result;
+    }
+
+    socket.on("init", (payload) => {
+      me = payload.yourSymbol;                 
+      state.board = payload.board;
+      state.turn = payload.turn;
+      draw();
+      loadingEl.style.display = "none";
+    });
+
+    socket.on("players", () => draw());
+
+    socket.on("state", (newState) => {
+      state = newState;
+      draw();
+    });
+
+    resetBtn.onclick = () => socket.emit("reset");
+  </script>
+</body>
+</html>
