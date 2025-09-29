@@ -5,15 +5,15 @@
   --color-text: #1f1f1f;
   --color-muted: #5a5a5a;
   --viewport-height: 100vh;
-  --card-max-width: min(840px, 96vw);
+  --card-max-width: min(960px, 96vw);
   --body-padding-block: clamp(24px, 6vh, 48px);
-  --body-padding-inline: clamp(32px, 8vw, 72px);
-  --layout-gap: clamp(18px, 3vw, 28px);
-  --game-gap: clamp(18px, 4vh, 28px);
-  --board-max-by-width: min(var(--card-max-width), 92vw);
-  --board-chrome-height: clamp(320px, 35vh, 360px);
+  --body-padding-inline: clamp(28px, 7vw, 64px);
+  --layout-gap: clamp(16px, 2.5vw, 24px);
+  --game-gap: clamp(16px, 3vh, 26px);
+  --board-max-by-width: min(var(--card-max-width), 94vw);
+  --board-chrome-height: clamp(250px, 30vh, 320px);
   --board-available-height: calc(var(--viewport-height) - (var(--body-padding-block) * 2) - var(--board-chrome-height));
-  --board-size: clamp(240px, min(var(--board-max-by-width), var(--board-available-height)), 640px);
+  --board-size: clamp(280px, min(var(--board-max-by-width), var(--board-available-height)), 760px);
 }
 
 @supports (height: 100dvh) {
@@ -201,17 +201,20 @@ button:not(.cell):disabled {
 .hidden { display: none !important; }
 
 
+
 .turnline {
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: clamp(6px, 2vh, 16px);
+  gap: clamp(4px, 1.6vh, 12px);
 }
+
 
 
 .turnline strong {
   font-size: clamp(1.35rem, 3.2vw, 1.9rem);
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .tag-x, .as-x { color: var(--color-x); font-weight: 700; }
