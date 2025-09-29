@@ -5,8 +5,15 @@
   --color-text: #1f1f1f;
   --color-muted: #5a5a5a;
   --viewport-height: 100vh;
-  --card-max-width: min(620px, 98vw);
-  --board-size: clamp(320px, min(98vw, calc(var(--viewport-height) - 140px)), 600px);
+  --card-max-width: min(840px, 96vw);
+  --body-padding-block: clamp(24px, 6vh, 48px);
+  --body-padding-inline: clamp(32px, 8vw, 72px);
+  --layout-gap: clamp(18px, 3vw, 28px);
+  --game-gap: clamp(18px, 4vh, 28px);
+  --board-max-by-width: min(var(--card-max-width), 92vw);
+  --board-chrome-height: clamp(320px, 35vh, 360px);
+  --board-available-height: calc(var(--viewport-height) - (var(--body-padding-block) * 2) - var(--board-chrome-height));
+  --board-size: clamp(240px, min(var(--board-max-by-width), var(--board-available-height)), 640px);
 }
 
 @supports (height: 100dvh) {
@@ -19,14 +26,14 @@
   box-sizing: border-box;
 }
 
+
 body {
   margin: 0;
-  min-height: 100vh;
   min-height: var(--viewport-height);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(36px, 8vw, 64px);
+  padding: var(--body-padding-block) var(--body-padding-inline);
   background-color: #fffdf8;
   background-image: url("grid-background.png");
   background-position: center;
@@ -36,18 +43,25 @@ body {
   color: var(--color-text);
 }
 
+
+
 .card {
   width: min(var(--card-max-width), 100%);
   max-width: var(--card-max-width);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(18px, 4vw, 28px);
+  justify-content: center;
+  gap: var(--layout-gap);
+  flex: 1 1 auto;
+  min-height: calc(var(--viewport-height) - (var(--body-padding-block) * 2));
+  max-height: calc(var(--viewport-height) - (var(--body-padding-block) * 2));
 }
 
 .brand {
   text-align: center;
 }
+
 
 .brand h1 {
   margin: 0;
@@ -56,7 +70,7 @@ body {
   justify-content: center;
   gap: clamp(0.12em, 0.9vw, 0.24em);
   font-family: 'Luckiest Guy', cursive;
-  font-size: clamp(3.2rem, 9vw, 4.2rem);
+  font-size: clamp(3.4rem, 8vw, 4.8rem);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   line-height: 0.92;
@@ -99,12 +113,13 @@ body {
   color: var(--color-muted);
 }
 
+
 .lobby {
-  width: 60%;
+  width: min(100%, var(--board-size));
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: clamp(18px, 3vw, 28px);
   text-align: center;
 }
 
@@ -120,9 +135,10 @@ body {
   gap: 12px;
 }
 
+
 .login label {
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: clamp(1.05rem, 2.4vw, 1.2rem);
 }
 
 .login input {
@@ -139,12 +155,13 @@ body {
   box-shadow: 0 0 0 4px rgba(36, 127, 207, 0.25);
 }
 
+
 button:not(.cell) {
   border: none;
-  margin-top: 14px;
+  margin-top: clamp(12px, 2.5vh, 18px);
   border-radius: 16px;
-  padding: 14px 30px;
-  font-size: 1.05rem;
+  padding: clamp(12px, 2.6vh, 18px) clamp(24px, 5vw, 36px);
+  font-size: clamp(1.05rem, 2.2vw, 1.28rem);
   font-weight: 700;
   background: #0b0b0b;
   color: #ffffff;
@@ -170,26 +187,30 @@ button:not(.cell):disabled {
   min-height: 1.4em;
 }
 
+
+
 .game {
   width: min(var(--board-size), 100%);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 22px;
+  gap: var(--game-gap);
 }
 
 .hidden { display: none !important; }
+
 
 .turnline {
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: clamp(6px, 2vh, 16px);
 }
 
+
 .turnline strong {
-  font-size: 1.35rem;
+  font-size: clamp(1.35rem, 3.2vw, 1.9rem);
   text-transform: uppercase;
 }
 
@@ -231,6 +252,7 @@ button:not(.cell):disabled {
   border-radius: inherit;
 }
 
+
 .cell {
   border: none;
   background: transparent;
@@ -239,7 +261,7 @@ button:not(.cell):disabled {
   justify-content: center;
   font-family: 'Varela Round', sans-serif;
   font-weight: 800;
-  font-size: clamp(3.6rem, 11vw, 5rem);
+  font-size: clamp(3.8rem, 12vw, 6.4rem);
   text-transform: lowercase;
   line-height: 0.9;
   color: transparent;
@@ -269,13 +291,14 @@ button:not(.cell):disabled {
     3px 3px 0 var(--color-line);
 }
 
+
 .scoreboard {
   width: min(var(--board-size), 100%);
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  font-size: 0.98rem;
+  gap: clamp(16px, 4vw, 32px);
+  font-size: clamp(1rem, 1.8vw, 1.3rem);
 }
 
 .score {
@@ -293,8 +316,9 @@ button:not(.cell):disabled {
 .score .label .tag-x { color: var(--color-x); }
 .score .label .tag-o { color: var(--color-o); }
 
+
 .score .value {
-  font-size: 1.35rem;
+  font-size: clamp(1.6rem, 3.8vw, 2.2rem);
   font-weight: 700;
 }
 
@@ -334,30 +358,59 @@ button:not(.cell):disabled {
 }
  
 
+
 .muted { opacity: 0.75; }
+
+@media (max-width: 900px) {
+  :root {
+    --card-max-width: min(760px, 96vw);
+    --body-padding-block: clamp(18px, 6vh, 36px);
+    --body-padding-inline: clamp(18px, 6vw, 40px);
+    --layout-gap: clamp(20px, 5vh, 30px);
+    --game-gap: clamp(20px, 5vh, 32px);
+    --board-max-by-width: min(var(--card-max-width), 94vw);
+    --board-chrome-height: clamp(300px, 34vh, 340px);
+    --board-available-height: calc(var(--viewport-height) - (var(--body-padding-block) * 2) - var(--board-chrome-height));
+    --board-size: clamp(220px, min(var(--board-max-by-width), var(--board-available-height)), 600px);
+  }
+
+  .brand h1 {
+    font-size: clamp(3.4rem, 10vw, 4.8rem);
+  }
+
+  .scoreboard {
+    gap: clamp(18px, 6vw, 30px);
+  }
+}
 
 @media (max-width: 540px) {
   :root {
     --card-max-width: min(640px, 100vw);
-    --board-size: clamp(300px, min(100vw - 8px, calc(var(--viewport-height) - 100px)), 640px);
+    --body-padding-block: clamp(12px, 6vh, 22px);
+    --body-padding-inline: clamp(10px, 6vw, 18px);
+    --layout-gap: clamp(20px, 7vh, 36px);
+    --game-gap: clamp(22px, 6vh, 36px);
+    --board-max-by-width: min(var(--card-max-width), 100vw);
+    --board-chrome-height: clamp(220px, 40vh, 260px);
+    --board-available-height: calc(var(--viewport-height) - (var(--body-padding-block) * 2) - var(--board-chrome-height));
+    --board-size: clamp(220px, min(var(--board-max-by-width), var(--board-available-height)), 540px);
   }
 
   body {
-    padding: clamp(8px, 4vh, 18px) clamp(4px, 2vw, 10px);
-    align-items: center;
+    align-items: stretch;
   }
 
   .card {
-    gap: clamp(14px, 4.5vh, 26px);
+    justify-content: space-between;
   }
 
   .brand h1 {
-    font-size: clamp(3.6rem, 18vw, 5.4rem);
+    font-size: clamp(3.8rem, 20vw, 5.6rem);
   }
 
   .lobby {
     width: 100%;
-    gap: clamp(16px, 4vh, 24px);
+    gap: clamp(20px, 6vh, 34px);
   }
 
   .lobby .login {
@@ -365,34 +418,30 @@ button:not(.cell):disabled {
   }
 
   .login label {
-    font-size: 1.24rem;
+    font-size: clamp(1.24rem, 4.8vw, 1.48rem);
   }
 
   .login input,
   button:not(.cell) {
-    font-size: 1.2rem;
-    padding: 18px 26px;
-  }
-
-  .game {
-    width: min(100%, var(--board-size));
-    gap: clamp(16px, 4vh, 26px);
+    font-size: clamp(1.28rem, 4.8vw, 1.6rem);
+    padding: clamp(16px, 5vh, 24px) clamp(22px, 8vw, 32px);
   }
 
   .turnline {
-    gap: 14px;
+    gap: clamp(12px, 5vh, 22px);
   }
 
   .turnline strong {
-    font-size: 1.65rem;
+    font-size: clamp(1.8rem, 6.5vw, 2.3rem);
   }
 
   .scoreboard {
-    font-size: 1.18rem;
+    gap: clamp(18px, 8vw, 30px);
+    font-size: clamp(1.24rem, 5vw, 1.5rem);
   }
 
   .score .value {
-    font-size: 1.5rem;
+    font-size: clamp(1.8rem, 7vw, 2.6rem);
   }
 }
 
