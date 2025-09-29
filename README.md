@@ -3,13 +3,13 @@
 A lightweight multiplayer Tic-Tac-Toe experience that keeps the entire table in sync through Socket.IO. Players join with a username, get matched in real time, and the board, score tracker, and lobby status update instantly for everyone watching.
 
 ## Figma Design
-![alt text](screenshots/image.png)
+![alt text](assets/figma-design.png)
 
 ## Screenshots
-![alt text](screenshots/image-1.png)
-![alt text](screenshots/image-2.png)
-![alt text](screenshots/image-3.png)
-![alt text](screenshots/image-4.png)
+![alt text](assets/matchmaking.png)
+![alt text](assets/inmatch-game.png)
+![alt text](assets/spectator.png)
+![alt text](assets/series-winner.png)
 
 ## Features
 - **Realtime matchmaking** � seat assignment for X and O with a 10-second opponent search countdown and automatic lobby reset when no match is found.
