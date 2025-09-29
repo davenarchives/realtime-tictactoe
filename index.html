@@ -87,6 +87,7 @@
     const seriesMessageEl = document.getElementById('series-message');
     const seriesStatusEl = document.getElementById('series-status');
 
+    const SEARCH_TIMEOUT_MS = 10000;
     const AUTO_RESET_DELAY_MS = 1500;
     const SERIES_EXIT_DELAY_MS = 3000;
 
@@ -102,6 +103,11 @@
     let scoreboard = { X: 0, O: 0, tie: 0 };
     let autoResetTimer = null;
     let seriesExitTimer = null;
+    let searchCountdownTimer = null;
+    let searchTimeoutTimer = null;
+    let searchSecondsRemaining = 0;
+    let searchStatusOverride = '';
+    let retainNameNextReset = false;
 
     statusTextEl.textContent = 'Enter your name to join a match.';
 
@@ -168,6 +174,58 @@
       setSeriesStatus('');
     }
 
+    function formatSearchCountdown(seconds) {
+      return `Searching for an opponent (${seconds}s)`;
+    }
+
+    function setSearchStatus(message) {
+      searchStatusOverride = message || '';
+      updateLobbyStatus();
+    }
+
+    function clearSearchTimers() {
+      if (searchCountdownTimer) {
+        clearInterval(searchCountdownTimer);
+        searchCountdownTimer = null;
+      }
+      if (searchTimeoutTimer) {
+        clearTimeout(searchTimeoutTimer);
+        searchTimeoutTimer = null;
+      }
+      searchSecondsRemaining = 0;
+    }
+
+    function startOpponentSearch() {
+      clearSearchTimers();
+      searchSecondsRemaining = Math.floor(SEARCH_TIMEOUT_MS / 1000);
+      setSearchStatus(formatSearchCountdown(searchSecondsRemaining));
+      searchCountdownTimer = setInterval(() => {
+        searchSecondsRemaining -= 1;
+        if (searchSecondsRemaining > 0) {
+          setSearchStatus(formatSearchCountdown(searchSecondsRemaining));
+        } else {
+          clearInterval(searchCountdownTimer);
+          searchCountdownTimer = null;
+        }
+      }, 1000);
+      searchTimeoutTimer = setTimeout(() => {
+        clearSearchTimers();
+        searching = false;
+        joinButton.disabled = false;
+        nameInput.disabled = false;
+        setSearchStatus('No opponent found');
+        retainNameNextReset = true;
+        socket.emit('series_exit');
+      }, SEARCH_TIMEOUT_MS);
+    }
+
+    function stopOpponentSearch({ clearMessage = false } = {}) {
+      clearSearchTimers();
+      if (clearMessage) {
+        setSearchStatus('');
+      }
+    }
+
     function updateScoreboardLabels() {
       const xName = playerLabel('X');
       const oName = playerLabel('O');
@@ -194,7 +252,9 @@
       let text = message || '';
 
       if (!text) {
-        if (me) {
+        if (searchStatusOverride) {
+          text = searchStatusOverride;
+        } else if (me) {
           if (ready) {
             const opponent = me === 'X' ? playerNames.O : playerNames.X;
             text = opponent ? `Matched with ${opponent}.` : 'Waiting for another player to join...';
@@ -343,10 +403,12 @@
         return;
       }
       myName = name;
+      retainNameNextReset = false;
+      stopOpponentSearch({ clearMessage: true });
       searching = true;
       joinButton.disabled = true;
       nameInput.disabled = true;
-      statusTextEl.textContent = 'Searching for an opponent.';
+      startOpponentSearch();
       socket.emit('join', { name });
       updateLobbyStatus();
     });
@@ -362,6 +424,7 @@
       playerNames = sanitizePlayers(payload.players);
       resetScoreboard();
       searching = false;
+      stopOpponentSearch({ clearMessage: true });
       draw();
     });
 
@@ -375,6 +438,12 @@
       playerNames = sanitizePlayers(payload.players);
       myName = payload.name || myName;
       searching = false;
+      const ready = Boolean(playerNames.X && playerNames.O);
+      if (ready) {
+        stopOpponentSearch({ clearMessage: true });
+      } else if (!searchCountdownTimer && !searchTimeoutTimer) {
+        startOpponentSearch();
+      }
       joinButton.disabled = false;
       nameInput.disabled = false;
       resetScoreboard();
@@ -382,6 +451,7 @@
     });
 
     socket.on('waiting', ({ message } = {}) => {
+      stopOpponentSearch({ clearMessage: true });
       searching = true;
       joinButton.disabled = false;
       nameInput.disabled = false;
@@ -390,6 +460,7 @@
     });
 
     socket.on('join_error', ({ message } = {}) => {
+      stopOpponentSearch({ clearMessage: true });
       searching = false;
       joinButton.disabled = false;
       nameInput.disabled = false;
@@ -399,6 +470,9 @@
 
     socket.on('players', (players = {}) => {
       playerNames = sanitizePlayers(players);
+      if (playerNames.X && playerNames.O) {
+        stopOpponentSearch({ clearMessage: true });
+      }
       draw();
     });
 
@@ -409,14 +483,23 @@
       state = emptyState();
       playerNames = { X: null, O: null };
       me = null;
-      myName = '';
+      const keepName = retainNameNextReset;
+      retainNameNextReset = false;
+      if (!keepName) {
+        myName = '';
+      }
       searching = false;
+      stopOpponentSearch({ clearMessage: !keepName });
       joinButton.disabled = false;
       nameInput.disabled = false;
-      nameInput.value = '';
+      nameInput.value = keepName ? myName : '';
       lobbyEl.classList.remove('matched');
-      statusTextEl.textContent = 'Enter your name to join a match.';
-      updateLobbyStatus('Enter your name to join a match.');
+      if (keepName) {
+        updateLobbyStatus();
+      } else {
+        statusTextEl.textContent = 'Enter your name to join a match.';
+        updateLobbyStatus('Enter your name to join a match.');
+      }
       draw();
     });
 
@@ -443,6 +526,7 @@
     });
 
     socket.on('disconnect', () => {
+      stopOpponentSearch({ clearMessage: true });
       statusTextEl.textContent = 'Disconnected. Attempting to reconnect...';
       me = null;
       searching = false;
@@ -453,6 +537,7 @@
     });
 
     socket.io.on('reconnect', () => {
+      stopOpponentSearch({ clearMessage: true });
       if (myName) {
         statusTextEl.textContent = 'Reconnecting...';
         joinButton.disabled = true;
