@@ -5,7 +5,8 @@
   --color-text: #1f1f1f;
   --color-muted: #5a5a5a;
   --viewport-height: 100vh;
-  --board-size: clamp(300px, min(92vw, calc(var(--viewport-height) - 220px)), 480px);
+  --card-max-width: min(620px, 98vw);
+  --board-size: clamp(320px, min(98vw, calc(var(--viewport-height) - 140px)), 600px);
 }
 
 @supports (height: 100dvh) {
@@ -36,12 +37,12 @@ body {
 }
 
 .card {
-  width: min(520px, 100%);
-  max-width: min(520px, 96vw);
+  width: min(var(--card-max-width), 100%);
+  max-width: var(--card-max-width);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(20px, 4vw, 32px);
+  gap: clamp(18px, 4vw, 28px);
 }
 
 .brand {
@@ -337,24 +338,26 @@ button:not(.cell):disabled {
 
 @media (max-width: 540px) {
   :root {
-    --board-size: clamp(300px, min(100vw - 24px, calc(var(--viewport-height) - 200px)), 460px);
+    --card-max-width: min(640px, 100vw);
+    --board-size: clamp(300px, min(100vw - 8px, calc(var(--viewport-height) - 100px)), 640px);
   }
 
   body {
-    padding: clamp(18px, 6vh, 28px) clamp(6px, 3vw, 16px);
+    padding: clamp(8px, 4vh, 18px) clamp(4px, 2vw, 10px);
     align-items: center;
   }
 
   .card {
-    gap: clamp(20px, 5vh, 32px);
+    gap: clamp(14px, 4.5vh, 26px);
   }
 
   .brand h1 {
-    font-size: clamp(3.2rem, 14vw, 4.4rem);
+    font-size: clamp(3.6rem, 18vw, 5.4rem);
   }
 
   .lobby {
-    gap: clamp(20px, 4vh, 30px);
+    width: 100%;
+    gap: clamp(16px, 4vh, 24px);
   }
 
   .lobby .login {
@@ -362,33 +365,34 @@ button:not(.cell):disabled {
   }
 
   .login label {
-    font-size: 1.15rem;
+    font-size: 1.24rem;
   }
 
   .login input,
   button:not(.cell) {
-    font-size: 1.1rem;
-    padding: 15px 22px;
+    font-size: 1.2rem;
+    padding: 18px 26px;
   }
 
   .game {
-    gap: clamp(20px, 4vh, 30px);
+    width: min(100%, var(--board-size));
+    gap: clamp(16px, 4vh, 26px);
   }
 
   .turnline {
-    gap: 10px;
+    gap: 14px;
   }
 
   .turnline strong {
-    font-size: 1.45rem;
+    font-size: 1.65rem;
   }
 
   .scoreboard {
-    font-size: 1.05rem;
+    font-size: 1.18rem;
   }
 
   .score .value {
-    font-size: 1.3rem;
+    font-size: 1.5rem;
   }
 }
 
