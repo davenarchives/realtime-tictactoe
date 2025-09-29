@@ -3,8 +3,15 @@
   --color-o: #247fcf;
   --color-line: #0f0f0f;
   --color-text: #1f1f1f;
-  --board-size: min(360px, 82vw);
   --color-muted: #5a5a5a;
+  --viewport-height: 100vh;
+  --board-size: clamp(300px, min(92vw, calc(var(--viewport-height) - 220px)), 480px);
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --viewport-height: 100dvh;
+  }
 }
 
 * {
@@ -13,7 +20,8 @@
 
 body {
   margin: 0;
-  height: 100vh;
+  min-height: 100vh;
+  min-height: var(--viewport-height);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -28,7 +36,8 @@ body {
 }
 
 .card {
-  width: min(440px, 92vw);
+  width: min(520px, 100%);
+  max-width: min(520px, 96vw);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -187,7 +196,7 @@ button:not(.cell):disabled {
 .tag-o, .as-o { color: var(--color-o); font-weight: 700; }
 
 .board {
-  width: var(--board-size);
+  width: min(var(--board-size), 100%);
   margin: 0 auto;
   aspect-ratio: 1;
   position: relative;
@@ -260,7 +269,7 @@ button:not(.cell):disabled {
 }
 
 .scoreboard {
-  width: var(--board-size);
+  width: min(var(--board-size), 100%);
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -327,60 +336,59 @@ button:not(.cell):disabled {
 .muted { opacity: 0.75; }
 
 @media (max-width: 540px) {
-  :root { --board-size: min(clamp(300px, 94vw, 440px), max(260px, calc(100vh - 220px))); }
+  :root {
+    --board-size: clamp(300px, min(100vw - 24px, calc(var(--viewport-height) - 200px)), 460px);
+  }
 
   body {
-    padding: clamp(22px, 6vh, 32px) 14px;
+    padding: clamp(18px, 6vh, 28px) clamp(6px, 3vw, 16px);
     align-items: center;
   }
 
   .card {
-    width: 100%;
-    max-width: 440px;
-    gap: clamp(18px, 4vh, 28px);
+    gap: clamp(20px, 5vh, 32px);
   }
 
   .brand h1 {
-    font-size: clamp(3rem, 13vw, 4rem);
+    font-size: clamp(3.2rem, 14vw, 4.4rem);
   }
 
   .lobby {
-    width: 100%;
-    gap: clamp(18px, 3vh, 26px);
+    gap: clamp(20px, 4vh, 30px);
   }
 
   .lobby .login {
-    width: min(var(--board-size), 92vw);
+    width: min(var(--board-size), 100%);
   }
 
   .login label {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
   }
 
   .login input,
   button:not(.cell) {
-    font-size: 1.05rem;
-    padding: 14px 22px;
+    font-size: 1.1rem;
+    padding: 15px 22px;
   }
 
   .game {
-    gap: clamp(18px, 3vh, 26px);
+    gap: clamp(20px, 4vh, 30px);
   }
 
   .turnline {
-    gap: 8px;
+    gap: 10px;
   }
 
   .turnline strong {
-    font-size: 1.35rem;
+    font-size: 1.45rem;
   }
 
   .scoreboard {
-    font-size: 1rem;
+    font-size: 1.05rem;
   }
 
   .score .value {
-    font-size: 1.2rem;
+    font-size: 1.3rem;
   }
 }
 
