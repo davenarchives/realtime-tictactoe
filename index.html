@@ -316,12 +316,14 @@
           turnIndicatorEl.textContent = "It's a draw";
         } else {
           const cls = state.result === 'X' ? 'tag-x' : 'tag-o';
-          turnIndicatorEl.innerHTML = `<span class="${cls}">${state.result}</span> wins!`;
+          const winnerName = playerLabel(state.result);
+          turnIndicatorEl.innerHTML = `<span class="${cls}">${winnerName}</span> wins!`;
         }
         return;
       }
       const cls = state.turn === 'X' ? 'tag-x' : 'tag-o';
-      turnIndicatorEl.innerHTML = `<span class="${cls}">${state.turn}</span>'s turn`;
+      const currentPlayerName = playerLabel(state.turn);
+      turnIndicatorEl.innerHTML = `<span class="${cls}">${currentPlayerName}</span>'s turn`;
     }
 
     function drawBoard() {
