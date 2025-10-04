@@ -146,17 +146,38 @@
     let selectedMode = null;
     let currentRound = 0;
     let totalRounds = 1;
-    let seriesScore = { X: 0, O: 0 };
+    let seriesScore = { player1: 0, player2: 0 };
+    let originalPlayers = { player1: null, player2: null };
     let myVote = null;
-    let autoResetTimer = null;
-    let seriesExitTimer = null;
+    let retainNameNextReset = false;
+    let searchStatusOverride = '';
     let searchCountdownTimer = null;
     let searchTimeoutTimer = null;
     let searchSecondsRemaining = 0;
-    let searchStatusOverride = '';
-    let retainNameNextReset = false;
+    let autoResetTimer = null;
+    let seriesExitTimer = null;
 
     statusTextEl.textContent = 'Enter your name to join a match.';
+
+    function updateLobbyStatus(message) {
+      if (!lobbyStatusEl) return;
+      
+      if (message) {
+        lobbyStatusEl.textContent = message;
+      } else if (searchStatusOverride) {
+        lobbyStatusEl.textContent = searchStatusOverride;
+      } else if (searching) {
+        if (myName && !playerNames.X && !playerNames.O) {
+          lobbyStatusEl.textContent = `${myName} is waiting for an opponent...`;
+        } else if (myName && (playerNames.X || playerNames.O)) {
+          lobbyStatusEl.textContent = `${myName} is waiting for an opponent...`;
+        } else {
+          lobbyStatusEl.textContent = 'Searching for an opponent...';
+        }
+      } else {
+        lobbyStatusEl.textContent = 'Enter your name to join a match.';
+      }
+    }
 
     function sanitizePlayers(players = {}) {
       return {
@@ -329,8 +350,16 @@
 
     function updateScoreboardDisplay() {
       if (totalRounds > 1) {
-        scoreXEl.textContent = seriesScore.X;
-        scoreOEl.textContent = seriesScore.O;
+        const player1Symbol = getPlayerSymbol(originalPlayers.player1?.name);
+        const player2Symbol = getPlayerSymbol(originalPlayers.player2?.name);
+        
+        if (player1Symbol === 'X') {
+          scoreXEl.textContent = seriesScore.player1;
+          scoreOEl.textContent = seriesScore.player2;
+        } else {
+          scoreXEl.textContent = seriesScore.player2;
+          scoreOEl.textContent = seriesScore.player1;
+        }
         scoreTieEl.textContent = 0;
       } else {
         scoreXEl.textContent = scoreboard.X;
@@ -339,50 +368,18 @@
       }
     }
 
+    function getPlayerSymbol(playerName) {
+      if (playerNames.X === playerName) return 'X';
+      if (playerNames.O === playerName) return 'O';
+      return null;
+    }
+
     function resetScoreboard() {
       scoreboard = { X: 0, O: 0, tie: 0 };
-      seriesScore = { X: 0, O: 0 };
+      seriesScore = { player1: 0, player2: 0 };
       updateScoreboardDisplay();
       clearSeriesExitTimer();
       hideSeriesModal();
-    }
-
-    function updateLobbyStatus(message) {
-      const ready = Boolean(playerNames.X && playerNames.O);
-      let text = message || '';
-
-      if (!text) {
-        if (searchStatusOverride) {
-          text = searchStatusOverride;
-        } else if (me) {
-          if (ready) {
-            const opponent = me === 'X' ? playerNames.O : playerNames.X;
-            text = opponent ? `Matched with ${opponent}.` : 'Waiting for another player to join...';
-          } else if (searching) {
-            text = 'Searching for an opponent.';
-          } else {
-            text = 'Enter your name to join a match.';
-          }
-        } else if (searching) {
-          text = 'Searching for an opponent.';
-        } else if (playerNames.X || playerNames.O) {
-          const xName = playerNames.X;
-          const oName = playerNames.O;
-          if (xName && oName) {
-            text = `Watching ${xName} and ${oName}'s match.`;
-          } else {
-            const waiting = xName || oName || 'A player';
-            text = `${waiting} is waiting for an opponent.`;
-          }
-        } else {
-          text = 'Enter your name to join a match.';
-        }
-      }
-
-      lobbyStatusEl.textContent = text;
-      if (gameEl.classList.contains('hidden')) {
-        statusTextEl.textContent = text;
-      }
     }
 
     function updateGameVisibility() {
@@ -422,9 +419,15 @@
         }
         return;
       }
-      const cls = state.turn === 'X' ? 'tag-x' : 'tag-o';
-      const currentPlayerName = playerLabel(state.turn);
-      turnIndicatorEl.innerHTML = `<span class="${cls}">${currentPlayerName}</span>'s turn`;
+      
+      if (me && state.turn === me) {
+        const cls = state.turn === 'X' ? 'tag-x' : 'tag-o';
+        turnIndicatorEl.innerHTML = `<span class="${cls}">YOUR TURN</span>`;
+      } else {
+        const cls = state.turn === 'X' ? 'tag-x' : 'tag-o';
+        const currentPlayerName = playerLabel(state.turn);
+        turnIndicatorEl.innerHTML = `<span class="${cls}">${currentPlayerName}</span>'s turn`;
+      }
     }
 
     function drawBoard() {
@@ -439,7 +442,6 @@
         }
 
         const canPlay = !value && me && state.turn === me && !state.result;
-        console.log(`[v0] Cell ${index}: value=${value}, me=${me}, turn=${state.turn}, result=${state.result}, canPlay=${canPlay}`);
         cell.disabled = !canPlay;
         if (!canPlay && !value) cell.classList.add('muted');
 
@@ -485,15 +487,9 @@
       if (result === 'X' || result === 'O') {
         scoreboard[result] += 1;
         updateScoreboardDisplay();
-        if (scoreboard[result] >= 5) {
-          announceSeriesWinner(result);
-          return;
-        }
-        scheduleAutoReset();
       } else if (result === 'Draw') {
         scoreboard.tie += 1;
         updateScoreboardDisplay();
-        scheduleAutoReset();
       } else {
         updateScoreboardDisplay();
       }
@@ -545,7 +541,8 @@
       selectedMode = payload.selectedMode || null;
       currentRound = payload.currentRound || 0;
       totalRounds = payload.totalRounds || 1;
-      seriesScore = payload.seriesScore || { X: 0, O: 0 };
+      seriesScore = payload.seriesScore || { player1: 0, player2: 0 };
+      originalPlayers = payload.originalPlayers || { player1: null, player2: null };
       resetScoreboard();
       searching = false;
       stopOpponentSearch({ clearMessage: true });
@@ -565,18 +562,30 @@
       selectedMode = payload.selectedMode || null;
       currentRound = payload.currentRound || 0;
       totalRounds = payload.totalRounds || 1;
-      seriesScore = payload.seriesScore || { X: 0, O: 0 };
+      seriesScore = payload.seriesScore || { player1: 0, player2: 0 };
+      originalPlayers = payload.originalPlayers || { player1: null, player2: null };
       searching = false;
+
       const ready = Boolean(playerNames.X && playerNames.O);
       if (ready) {
         stopOpponentSearch({ clearMessage: true });
       } else if (!searchCountdownTimer && !searchTimeoutTimer) {
         startOpponentSearch();
+        updateLobbyStatus();
       }
       joinButton.disabled = false;
       nameInput.disabled = false;
       resetScoreboard();
       draw();
+    });
+
+    socket.on('lobby_status', (payload) => {
+      const { searchingPlayers } = payload;
+      
+      if (!me && !searching && searchingPlayers && searchingPlayers.length > 0) {
+        const waitingPlayer = searchingPlayers[0];
+        updateLobbyStatus(`${waitingPlayer} is waiting for an opponent...`);
+      }
     });
 
     socket.on('waiting', ({ message } = {}) => {
@@ -602,6 +611,7 @@
       if (playerNames.X && playerNames.O) {
         stopOpponentSearch({ clearMessage: true });
       }
+      updateLobbyStatus();
       draw();
     });
 
@@ -674,11 +684,12 @@
       
       let summary = '';
       if (winner) {
-        const winnerName = playerLabel(winner);
-        const loser = winner === 'X' ? 'O' : 'X';
-        summary = `${winnerName} wins the series ${score[winner]}-${score[loser]}!`;
+        const winnerName = payload.winnerName || (winner === 'player1' ? originalPlayers.player1?.name : originalPlayers.player2?.name) || 'Winner';
+        const winnerScore = winner === 'player1' ? score.player1 : score.player2;
+        const loserScore = winner === 'player1' ? score.player2 : score.player1;
+        summary = `${winnerName} wins the series ${winnerScore}-${loserScore}!`;
       } else {
-        summary = `Series tied ${score.X}-${score.O}!`;
+        summary = `Series tied ${score.player1}-${score.player2}!`;
       }
       
       seriesMessageEl.textContent = summary;
@@ -697,7 +708,8 @@
       selectedMode = null;
       currentRound = 0;
       totalRounds = 1;
-      seriesScore = { X: 0, O: 0 };
+      seriesScore = { player1: 0, player2: 0 };
+      originalPlayers = { player1: null, player2: null };
       myVote = null;
       hideModeSelection();
       const keepName = retainNameNextReset;

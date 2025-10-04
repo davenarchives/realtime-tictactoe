@@ -15,7 +15,7 @@ let modeVotes = { X: null, O: null }
 let selectedMode = null
 let currentRound = 0
 let totalRounds = 1
-let seriesScore = { X: 0, O: 0 }
+let seriesScore = { player1: 0, player2: 0 }
 let originalPlayers = { player1: null, player2: null } // player1 starts as X, player2 as O
 
 const lines = [
@@ -29,6 +29,7 @@ const lines = [
   [2, 4, 6],
 ]
 const playerMeta = new Map()
+const searchingPlayers = new Map() // Map<socketId, {name: string, timestamp: number}>
 
 const MODES = {
   BLITZ: { name: "BLITZ", rounds: 1, description: "1 Round Match" },
@@ -56,7 +57,7 @@ function resetModeSelection() {
   selectedMode = null
   currentRound = 0
   totalRounds = 1
-  seriesScore = { X: 0, O: 0 }
+  seriesScore = { player1: 0, player2: 0 }
   originalPlayers = { player1: null, player2: null }
 }
 
@@ -119,6 +120,11 @@ function publicPlayers() {
   }
 }
 
+function broadcastLobbyStatus() {
+  const searching = Array.from(searchingPlayers.values()).map((p) => p.name)
+  io.emit("lobby_status", { searchingPlayers: searching })
+}
+
 function returnPlayersToLobby() {
   const activePlayers = [players.X, players.O].filter(Boolean)
   const ids = activePlayers.map((player) => player.id)
@@ -132,11 +138,13 @@ function returnPlayersToLobby() {
       meta.symbol = null
       playerMeta.set(id, meta)
     }
+    searchingPlayers.delete(id)
   })
 
   io.emit("series_reset")
   io.emit("players", publicPlayers())
   io.emit("state", { board, turn, result: null, players: publicPlayers() })
+  broadcastLobbyStatus()
 }
 
 io.on("connection", (socket) => {
@@ -153,7 +161,14 @@ io.on("connection", (socket) => {
     currentRound,
     totalRounds,
     seriesScore,
+    originalPlayers: {
+      player1: originalPlayers.player1 ? { name: originalPlayers.player1.name } : null,
+      player2: originalPlayers.player2 ? { name: originalPlayers.player2.name } : null,
+    },
   })
+
+  const searching = Array.from(searchingPlayers.values()).map((p) => p.name)
+  socket.emit("lobby_status", { searchingPlayers: searching })
 
   socket.on("join", ({ name } = {}) => {
     const trimmedName = typeof name === "string" ? name.trim() : ""
@@ -180,6 +195,10 @@ io.on("connection", (socket) => {
         currentRound,
         totalRounds,
         seriesScore,
+        originalPlayers: {
+          player1: originalPlayers.player1 ? { name: originalPlayers.player1.name } : null,
+          player2: originalPlayers.player2 ? { name: originalPlayers.player2.name } : null,
+        },
       })
       io.emit("players", publicPlayers())
       return
@@ -189,12 +208,17 @@ io.on("connection", (socket) => {
     if (!seat) {
       playerMeta.set(socket.id, meta)
       socket.emit("waiting", { message: "Game already has two players. Waiting for a seat..." })
+      searchingPlayers.set(socket.id, { name: trimmedName, timestamp: Date.now() })
+      broadcastLobbyStatus()
       return
     }
 
     meta.symbol = seat
     playerMeta.set(socket.id, meta)
     players[seat] = { id: socket.id, name: trimmedName }
+
+    searchingPlayers.delete(socket.id)
+    broadcastLobbyStatus()
 
     if (!originalPlayers.player1) {
       originalPlayers.player1 = players[seat]
@@ -214,6 +238,10 @@ io.on("connection", (socket) => {
       currentRound,
       totalRounds,
       seriesScore,
+      originalPlayers: {
+        player1: originalPlayers.player1 ? { name: originalPlayers.player1.name } : null,
+        player2: originalPlayers.player2 ? { name: originalPlayers.player2.name } : null,
+      },
     })
     io.emit("players", publicPlayers())
 
@@ -263,7 +291,12 @@ io.on("connection", (socket) => {
 
     if (result) {
       if (result === "X" || result === "O") {
-        seriesScore[result] += 1
+        const winnerId = players[result].id
+        if (originalPlayers.player1 && originalPlayers.player1.id === winnerId) {
+          seriesScore.player1 += 1
+        } else if (originalPlayers.player2 && originalPlayers.player2.id === winnerId) {
+          seriesScore.player2 += 1
+        }
       }
 
       io.emit("state", {
@@ -277,21 +310,27 @@ io.on("connection", (socket) => {
       })
 
       const roundsToWin = Math.ceil(totalRounds / 2)
-      const hasSeriesWinner = seriesScore.X >= roundsToWin || seriesScore.O >= roundsToWin
+      const hasSeriesWinner = seriesScore.player1 >= roundsToWin || seriesScore.player2 >= roundsToWin
       const allRoundsPlayed = currentRound >= totalRounds
 
       if (hasSeriesWinner || allRoundsPlayed) {
         let seriesWinner = null
-        if (seriesScore.X > seriesScore.O) {
-          seriesWinner = "X"
-        } else if (seriesScore.O > seriesScore.X) {
-          seriesWinner = "O"
+        if (seriesScore.player1 > seriesScore.player2) {
+          seriesWinner = "player1"
+        } else if (seriesScore.player2 > seriesScore.player1) {
+          seriesWinner = "player2"
         }
 
         setTimeout(() => {
           io.emit("series_complete", {
             winner: seriesWinner,
             score: seriesScore,
+            winnerName:
+              seriesWinner === "player1"
+                ? originalPlayers.player1?.name
+                : seriesWinner === "player2"
+                  ? originalPlayers.player2?.name
+                  : null,
           })
         }, 1500)
       } else {
@@ -374,6 +413,9 @@ io.on("connection", (socket) => {
     if (isSeated) {
       returnPlayersToLobby()
     }
+
+    searchingPlayers.delete(socket.id)
+    broadcastLobbyStatus()
 
     playerMeta.delete(socket.id)
     if (!players.X && !players.O) {
