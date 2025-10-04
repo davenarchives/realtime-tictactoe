@@ -146,7 +146,7 @@
     let selectedMode = null;
     let currentRound = 0;
     let totalRounds = 1;
-    let seriesScore = { player1: 0, player2: 0 };
+    let seriesScore = { player1: 0, player2: 0, draws: 0 };
     let originalPlayers = { player1: null, player2: null };
     let myVote = null;
     let retainNameNextReset = false;
@@ -360,7 +360,7 @@
           scoreXEl.textContent = seriesScore.player2;
           scoreOEl.textContent = seriesScore.player1;
         }
-        scoreTieEl.textContent = 0;
+        scoreTieEl.textContent = seriesScore.draws || 0;
       } else {
         scoreXEl.textContent = scoreboard.X;
         scoreTieEl.textContent = scoreboard.tie;
@@ -376,7 +376,7 @@
 
     function resetScoreboard() {
       scoreboard = { X: 0, O: 0, tie: 0 };
-      seriesScore = { player1: 0, player2: 0 };
+      seriesScore = { player1: 0, player2: 0, draws: 0 };
       updateScoreboardDisplay();
       clearSeriesExitTimer();
       hideSeriesModal();
@@ -541,7 +541,7 @@
       selectedMode = payload.selectedMode || null;
       currentRound = payload.currentRound || 0;
       totalRounds = payload.totalRounds || 1;
-      seriesScore = payload.seriesScore || { player1: 0, player2: 0 };
+      seriesScore = payload.seriesScore || { player1: 0, player2: 0, draws: 0 };
       originalPlayers = payload.originalPlayers || { player1: null, player2: null };
       resetScoreboard();
       searching = false;
@@ -562,7 +562,7 @@
       selectedMode = payload.selectedMode || null;
       currentRound = payload.currentRound || 0;
       totalRounds = payload.totalRounds || 1;
-      seriesScore = payload.seriesScore || { player1: 0, player2: 0 };
+      seriesScore = payload.seriesScore || { player1: 0, player2: 0, draws: 0 };
       originalPlayers = payload.originalPlayers || { player1: null, player2: null };
       searching = false;
 
@@ -708,7 +708,7 @@
       selectedMode = null;
       currentRound = 0;
       totalRounds = 1;
-      seriesScore = { player1: 0, player2: 0 };
+      seriesScore = { player1: 0, player2: 0, draws: 0 };
       originalPlayers = { player1: null, player2: null };
       myVote = null;
       hideModeSelection();

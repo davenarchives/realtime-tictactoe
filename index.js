@@ -15,7 +15,7 @@ let modeVotes = { X: null, O: null }
 let selectedMode = null
 let currentRound = 0
 let totalRounds = 1
-let seriesScore = { player1: 0, player2: 0 }
+let seriesScore = { player1: 0, player2: 0, draws: 0 }
 let originalPlayers = { player1: null, player2: null } // player1 starts as X, player2 as O
 
 const lines = [
@@ -57,7 +57,7 @@ function resetModeSelection() {
   selectedMode = null
   currentRound = 0
   totalRounds = 1
-  seriesScore = { player1: 0, player2: 0 }
+  seriesScore = { player1: 0, player2: 0, draws: 0 }
   originalPlayers = { player1: null, player2: null }
 }
 
@@ -297,6 +297,8 @@ io.on("connection", (socket) => {
         } else if (originalPlayers.player2 && originalPlayers.player2.id === winnerId) {
           seriesScore.player2 += 1
         }
+      } else if (result === "Draw") {
+        seriesScore.draws += 1
       }
 
       io.emit("state", {
