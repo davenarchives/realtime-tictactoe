@@ -344,6 +344,27 @@ body {
   margin-top: 0.25rem;
 }
 
+/* Added color styling for specific mode cards */
+.mode-card--blitz .mode-icon,
+.mode-card--blitz .mode-name {
+  color: #247fcf;
+}
+
+.mode-card--skirmish .mode-icon,
+.mode-card--skirmish .mode-name {
+  color: #e32c2c;
+}
+
+.mode-card--deathmatch .mode-icon,
+.mode-card--deathmatch .mode-name {
+  color: #e32c2c;
+}
+
+.mode-card--random .mode-icon,
+.mode-card--random .mode-name {
+  color: #247fcf;
+}
+
 .vote-status {
   font-size: clamp(0.75rem, 2vw, 0.85rem);
   color: var(--color-text);

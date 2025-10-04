@@ -217,7 +217,12 @@ io.on("connection", (socket) => {
     playerMeta.set(socket.id, meta)
     players[seat] = { id: socket.id, name: trimmedName }
 
-    searchingPlayers.delete(socket.id)
+    const hasOpponent = players.X && players.O
+    if (!hasOpponent) {
+      searchingPlayers.set(socket.id, { name: trimmedName, timestamp: Date.now() })
+    } else {
+      searchingPlayers.delete(socket.id)
+    }
     broadcastLobbyStatus()
 
     if (!originalPlayers.player1) {
@@ -313,9 +318,8 @@ io.on("connection", (socket) => {
 
       const roundsToWin = Math.ceil(totalRounds / 2)
       const hasSeriesWinner = seriesScore.player1 >= roundsToWin || seriesScore.player2 >= roundsToWin
-      const allRoundsPlayed = currentRound >= totalRounds
 
-      if (hasSeriesWinner || allRoundsPlayed) {
+      if (hasSeriesWinner) {
         let seriesWinner = null
         if (seriesScore.player1 > seriesScore.player2) {
           seriesWinner = "player1"

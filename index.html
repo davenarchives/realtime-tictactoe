@@ -8,6 +8,8 @@
   <link rel='preconnect' href='https://fonts.googleapis.com'>
   <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
   <link href='https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Varela+Round&display=swap' rel='stylesheet'>
+  <!-- Added Font Awesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel='stylesheet' href='style.css' />
 </head>
 <body>
@@ -33,32 +35,36 @@
     </section>
 
     <section id='mode-selection' class='mode-selection hidden'>
-      <h2 class='mode-title'>Choose Your Battle Mode</h2>
+      <h2 class='mode-title'>Game Mode Selection</h2>
       <p class='mode-subtitle'>Vote for the game mode</p>
       
       <div class='mode-grid'>
-        <button class='mode-card' data-mode='BLITZ'>
+        <!-- Updated BLITZ icon to Font Awesome bolt-lightning -->
+        <button class='mode-card mode-card--blitz' data-mode='BLITZ'>
           <div class='mode-name'>BLITZ</div>
           <div class='mode-desc'>1 Round Match</div>
-          <div class='mode-icon'>⚡</div>
+          <div class='mode-icon'><i class="fa-solid fa-bolt"></i></div>
         </button>
         
-        <button class='mode-card' data-mode='SKIRMISH'>
+        <!-- Updated SKIRMISH icon to Font Awesome khanda -->
+        <button class='mode-card mode-card--skirmish' data-mode='SKIRMISH'>
           <div class='mode-name'>SKIRMISH</div>
           <div class='mode-desc'>3 Rounds Match</div>
-          <div class='mode-icon'>⚔️</div>
+          <div class='mode-icon'><i class="fa-solid fa-khanda"></i></div>
         </button>
         
-        <button class='mode-card' data-mode='DEATHMATCH'>
+        <!-- Updated DEATHMATCH icon to Font Awesome skull -->
+        <button class='mode-card mode-card--deathmatch' data-mode='DEATHMATCH'>
           <div class='mode-name'>DEATHMATCH</div>
           <div class='mode-desc'>5 Rounds Match</div>
-          <div class='mode-icon'>💀</div>
+          <div class='mode-icon'><i class="fa-solid fa-skull"></i></div>
         </button>
         
-        <button class='mode-card' data-mode='RANDOM'>
+        <!-- Updated RANDOM icon to Font Awesome shuffle -->
+        <button class='mode-card mode-card--random' data-mode='RANDOM'>
           <div class='mode-name'>RANDOM</div>
           <div class='mode-desc'>Surprise Me!</div>
-          <div class='mode-icon'>🎲</div>
+          <div class='mode-icon'><i class="fa-solid fa-shuffle"></i></div>
         </button>
       </div>
       
@@ -151,6 +157,7 @@
     let myVote = null;
     let retainNameNextReset = false;
     let searchStatusOverride = '';
+    let waitingPlayers = [];
     let searchCountdownTimer = null;
     let searchTimeoutTimer = null;
     let searchSecondsRemaining = 0;
@@ -174,6 +181,8 @@
         } else {
           lobbyStatusEl.textContent = 'Searching for an opponent...';
         }
+      } else if (!me && waitingPlayers.length > 0) {
+        lobbyStatusEl.textContent = `${waitingPlayers[0]} is waiting for an opponent...`;
       } else {
         lobbyStatusEl.textContent = 'Enter your name to join a match.';
       }
@@ -582,10 +591,8 @@
     socket.on('lobby_status', (payload) => {
       const { searchingPlayers } = payload;
       
-      if (!me && !searching && searchingPlayers && searchingPlayers.length > 0) {
-        const waitingPlayer = searchingPlayers[0];
-        updateLobbyStatus(`${waitingPlayer} is waiting for an opponent...`);
-      }
+      waitingPlayers = searchingPlayers || [];
+      updateLobbyStatus();
     });
 
     socket.on('waiting', ({ message } = {}) => {
