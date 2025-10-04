@@ -16,16 +16,16 @@
   --viewport-height: 100vh;
 
   /* Spacing & Layout - Mobile First */
-  --body-padding-block: clamp(0.75rem, 3vh, 1.5rem);
-  --body-padding-inline: clamp(1rem, 4vw, 2rem);
-  --layout-gap: clamp(0.875rem, 3vh, 1.5rem);
-  --game-gap: clamp(1.25rem, 3vh, 1.75rem);
+  --body-padding-block: clamp(0.5rem, 2vh, 1rem);
+  --body-padding-inline: clamp(0.75rem, 3vw, 1.5rem);
+  --layout-gap: clamp(0.5rem, 1.5vh, 0.875rem);
+  --game-gap: clamp(0.75rem, 2vh, 1.25rem);
 
   /* Board Sizing - Mobile First */
   --card-max-width: min(100vw, 640px);
-  --board-chrome-height: clamp(200px, 32vh, 260px);
+  --board-chrome-height: clamp(180px, 28vh, 240px);
   --board-available-height: calc(var(--viewport-height) - (var(--body-padding-block) * 2) - var(--board-chrome-height));
-  --board-size: clamp(280px, min(calc(100vw - 2rem), var(--board-available-height)), 540px);
+  --board-size: clamp(280px, min(calc(100vw - 2rem), var(--board-available-height)), 500px);
 
   /* New Color System */
   --background: oklch(1 0 0);
@@ -195,8 +195,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--layout-gap);
-  min-height: calc(var(--viewport-height) - (var(--body-padding-block) * 2));
-  max-height: calc(var(--viewport-height) - (var(--body-padding-block) * 2));
+  overflow-y: hidden;
 }
 
 /* ============================================
@@ -215,7 +214,7 @@ body {
   justify-content: center;
   gap: clamp(0.1em, 1vw, 0.2em);
   font-family: "Luckiest Guy", cursive;
-  font-size: clamp(2.5rem, 10vw, 4.2rem);
+  font-size: clamp(2rem, 8vw, 3.5rem);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   line-height: 0.92;
@@ -255,6 +254,118 @@ body {
 }
 
 /* ============================================
+   MODE SELECTION
+   ============================================ */
+
+.mode-selection {
+  width: 100%;
+  max-width: min(500px, var(--board-size));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.5rem, 1.5vh, 0.875rem);
+  text-align: center;
+}
+
+.mode-title {
+  margin: 0;
+  font-family: "Luckiest Guy", cursive;
+  font-size: clamp(1.1rem, 4vw, 1.5rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-line);
+  line-height: 1.2;
+}
+
+.mode-subtitle {
+  margin: -0.125rem 0 0;
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.mode-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+}
+
+.mode-card {
+  border: 3px solid var(--color-line);
+  background: #ffffff;
+  border-radius: 0.875rem;
+  padding: clamp(0.5rem, 2vw, 0.875rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.15);
+}
+
+.mode-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.25);
+  border-color: var(--color-o);
+}
+
+.mode-card:active {
+  transform: translateY(-2px);
+}
+
+.mode-card.selected {
+  border-color: var(--color-o);
+  background: rgba(36, 127, 207, 0.05);
+  box-shadow: 0 0 0 3px rgba(36, 127, 207, 0.15);
+}
+
+.mode-name {
+  font-family: "Luckiest Guy", cursive;
+  font-size: clamp(1.1rem, 3.5vw, 1.4rem);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-line);
+  line-height: 1.1;
+}
+
+.mode-desc {
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.mode-icon {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  margin-top: 0.25rem;
+}
+
+.vote-status {
+  font-size: clamp(0.8rem, 2.2vw, 0.9rem);
+  color: var(--color-text);
+  font-weight: 600;
+  min-height: 1.5em;
+  padding: 0.25rem;
+}
+
+/* ============================================
+   ROUND INDICATOR
+   ============================================ */
+
+.round-indicator {
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+  font-weight: 700;
+  color: var(--color-o);
+  background: rgba(36, 127, 207, 0.1);
+  padding: clamp(0.25rem, 0.75vh, 0.375rem) clamp(0.625rem, 1.5vw, 0.875rem);
+  border-radius: 0.5rem;
+  border: 2px solid var(--color-o);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ============================================
    LOBBY
    ============================================ */
 
@@ -264,7 +375,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(0.75rem, 2vh, 1rem);
+  gap: clamp(0.75rem, 2vh, 1.25rem);
   text-align: center;
 }
 
@@ -312,7 +423,7 @@ body {
    BUTTONS
    ============================================ */
 
-button:not(.cell) {
+button:not(.cell):not(.mode-card) {
   border: none;
   margin-top: clamp(0.375rem, 1vh, 0.5rem);
   border-radius: 0.625rem;
@@ -328,21 +439,21 @@ button:not(.cell) {
   -webkit-tap-highlight-color: transparent;
 }
 
-button:not(.cell):hover:not(:disabled) {
+button:not(.cell):not(.mode-card):hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.45);
 }
 
-button:not(.cell):active:not(:disabled) {
+button:not(.cell):not(.mode-card):active:not(:disabled) {
   transform: translateY(0);
 }
 
-button:not(.cell):focus-visible {
+button:not(.cell):not(.mode-card):focus-visible {
   outline: 3px solid var(--color-o);
   outline-offset: 3px;
 }
 
-button:not(.cell):disabled {
+button:not(.cell):not(.mode-card):disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
@@ -379,11 +490,11 @@ button:not(.cell):disabled {
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: clamp(0.375rem, 1.5vh, 0.5rem);
+  gap: clamp(0.25rem, 1vh, 0.375rem);
 }
 
 .turnline strong {
-  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-size: clamp(1.25rem, 4.5vw, 1.75rem);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   line-height: 1.2;
@@ -391,7 +502,7 @@ button:not(.cell):disabled {
 }
 
 .turnline #assignment {
-  font-size: clamp(0.95rem, 3vw, 1.1rem);
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
   color: var(--color-text);
   font-weight: 500;
 }
@@ -616,16 +727,16 @@ button:not(.cell):disabled {
 @media (min-width: 600px) {
   :root {
     --card-max-width: min(100vw, 760px);
-    --body-padding-block: clamp(1.25rem, 4vh, 2rem);
-    --body-padding-inline: clamp(1.5rem, 5vw, 3rem);
-    --layout-gap: clamp(1rem, 2.5vh, 1.5rem);
-    --game-gap: clamp(1.5rem, 2.5vh, 1.75rem);
-    --board-chrome-height: clamp(220px, 28vh, 280px);
-    --board-size: clamp(360px, min(calc(100vw - 3rem), var(--board-available-height)), 600px);
+    --body-padding-block: clamp(0.75rem, 3vh, 1.5rem);
+    --body-padding-inline: clamp(1rem, 4vw, 2rem);
+    --layout-gap: clamp(0.625rem, 2vh, 1rem);
+    --game-gap: clamp(1rem, 2vh, 1.5rem);
+    --board-chrome-height: clamp(200px, 26vh, 260px);
+    --board-size: clamp(360px, min(calc(100vw - 3rem), var(--board-available-height)), 540px);
   }
 
   .brand h1 {
-    font-size: clamp(3rem, 8vw, 4.2rem);
+    font-size: clamp(2.5rem, 7vw, 3.75rem);
   }
 
   .cell {
@@ -648,12 +759,12 @@ button:not(.cell):disabled {
 @media (min-width: 900px) {
   :root {
     --card-max-width: min(960px, 96vw);
-    --body-padding-block: clamp(1.5rem, 5vh, 2.5rem);
-    --body-padding-inline: clamp(2rem, 6vw, 4rem);
-    --layout-gap: clamp(1rem, 2vh, 1.5rem);
-    --game-gap: clamp(1.5rem, 2.5vh, 1.75rem);
-    --board-chrome-height: clamp(240px, 26vh, 300px);
-    --board-size: clamp(400px, min(calc(100vw - 4rem), var(--board-available-height)), 760px);
+    --body-padding-block: clamp(1rem, 3vh, 1.5rem);
+    --body-padding-inline: clamp(1.5rem, 4vw, 2.5rem);
+    --layout-gap: clamp(0.75rem, 1.5vh, 1rem);
+    --game-gap: clamp(1rem, 2vh, 1.5rem);
+    --board-chrome-height: clamp(220px, 24vh, 280px);
+    --board-size: clamp(400px, min(calc(100vw - 4rem), var(--board-available-height)), 600px);
   }
 
   body {
@@ -665,7 +776,7 @@ button:not(.cell):disabled {
   }
 
   .brand h1 {
-    font-size: clamp(3.5rem, 7vw, 4.2rem);
+    font-size: clamp(3rem, 6vw, 3.75rem);
   }
 
   .cell {
@@ -726,6 +837,35 @@ button:not(.cell):disabled {
     padding: 0.4rem 0.875rem;
     margin-top: 0.25rem;
     font-size: 0.8rem;
+  }
+
+  .mode-selection {
+    gap: 0.5rem;
+  }
+
+  .mode-title {
+    font-size: 1.25rem;
+  }
+
+  .mode-subtitle {
+    font-size: 0.75rem;
+    margin: 0;
+  }
+
+  .mode-card {
+    padding: 0.5rem;
+  }
+
+  .mode-name {
+    font-size: 0.9rem;
+  }
+
+  .mode-desc {
+    font-size: 0.7rem;
+  }
+
+  .mode-icon {
+    font-size: 1.25rem;
   }
 }
 

@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset='utf-8' />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Realtime Tic-Tac-Toe</title>
   <link rel="icon" type="icon" href="assets/tic-tac-toe.png">
   <link rel='preconnect' href='https://fonts.googleapis.com'>
@@ -31,7 +32,42 @@
       <p id='lobby-status' class='lobby-status'>Enter your name to join a match.</p>
     </section>
 
+    <section id='mode-selection' class='mode-selection hidden'>
+      <h2 class='mode-title'>Choose Your Battle Mode</h2>
+      <p class='mode-subtitle'>Vote for the game mode</p>
+      
+      <div class='mode-grid'>
+        <button class='mode-card' data-mode='BLITZ'>
+          <div class='mode-name'>BLITZ</div>
+          <div class='mode-desc'>1 Round Match</div>
+          <div class='mode-icon'>⚡</div>
+        </button>
+        
+        <button class='mode-card' data-mode='SKIRMISH'>
+          <div class='mode-name'>SKIRMISH</div>
+          <div class='mode-desc'>3 Rounds Match</div>
+          <div class='mode-icon'>⚔️</div>
+        </button>
+        
+        <button class='mode-card' data-mode='DEATHMATCH'>
+          <div class='mode-name'>DEATHMATCH</div>
+          <div class='mode-desc'>5 Rounds Match</div>
+          <div class='mode-icon'>💀</div>
+        </button>
+        
+        <button class='mode-card' data-mode='RANDOM'>
+          <div class='mode-name'>RANDOM</div>
+          <div class='mode-desc'>Surprise Me!</div>
+          <div class='mode-icon'>🎲</div>
+        </button>
+      </div>
+      
+      <div id='vote-status' class='vote-status'></div>
+    </section>
+
     <section id='game' class='game hidden' aria-live='polite'>
+      <div id='round-indicator' class='round-indicator hidden'></div>
+      
       <div class='turnline'>
         <span id='assignment'></span>
         <strong id='turn-indicator'></strong>
@@ -87,6 +123,10 @@
     const seriesModalEl = document.getElementById('series-modal');
     const seriesMessageEl = document.getElementById('series-message');
     const seriesStatusEl = document.getElementById('series-status');
+    const modeSelectionEl = document.getElementById('mode-selection');
+    const modeCards = document.querySelectorAll('.mode-card');
+    const voteStatusEl = document.getElementById('vote-status');
+    const roundIndicatorEl = document.getElementById('round-indicator');
 
     const SEARCH_TIMEOUT_MS = 10000;
     const AUTO_RESET_DELAY_MS = 1500;
@@ -102,6 +142,12 @@
     let playerNames = { X: null, O: null };
     let searching = false;
     let scoreboard = { X: 0, O: 0, tie: 0 };
+    let modeVotes = { X: null, O: null };
+    let selectedMode = null;
+    let currentRound = 0;
+    let totalRounds = 1;
+    let seriesScore = { X: 0, O: 0 };
+    let myVote = null;
     let autoResetTimer = null;
     let seriesExitTimer = null;
     let searchCountdownTimer = null;
@@ -227,6 +273,52 @@
       }
     }
 
+    function showModeSelection() {
+      lobbyEl.classList.add('hidden');
+      gameEl.classList.add('hidden');
+      modeSelectionEl.classList.remove('hidden');
+      myVote = null;
+      updateVoteStatus();
+    }
+
+    function hideModeSelection() {
+      modeSelectionEl.classList.add('hidden');
+    }
+
+    function updateVoteStatus() {
+      if (!voteStatusEl) return;
+      
+      const xName = playerNames.X || 'Player X';
+      const oName = playerNames.O || 'Player O';
+      const xVote = modeVotes.X;
+      const oVote = modeVotes.O;
+      
+      let status = '';
+      
+      if (xVote && oVote) {
+        status = `${xName} voted ${xVote} • ${oName} voted ${oVote}`;
+      } else if (xVote) {
+        status = `${xName} voted ${xVote} • Waiting for ${oName}...`;
+      } else if (oVote) {
+        status = `${oName} voted ${oVote} • Waiting for ${xName}...`;
+      } else {
+        status = 'Waiting for votes...';
+      }
+      
+      voteStatusEl.textContent = status;
+    }
+
+    function updateRoundIndicator() {
+      if (!roundIndicatorEl) return;
+      
+      if (totalRounds > 1 && currentRound > 0) {
+        roundIndicatorEl.textContent = `Round ${currentRound} of ${totalRounds}`;
+        roundIndicatorEl.classList.remove('hidden');
+      } else {
+        roundIndicatorEl.classList.add('hidden');
+      }
+    }
+
     function updateScoreboardLabels() {
       const xName = playerLabel('X');
       const oName = playerLabel('O');
@@ -236,13 +328,20 @@
     }
 
     function updateScoreboardDisplay() {
-      scoreXEl.textContent = scoreboard.X;
-      scoreTieEl.textContent = scoreboard.tie;
-      scoreOEl.textContent = scoreboard.O;
+      if (totalRounds > 1) {
+        scoreXEl.textContent = seriesScore.X;
+        scoreOEl.textContent = seriesScore.O;
+        scoreTieEl.textContent = 0;
+      } else {
+        scoreXEl.textContent = scoreboard.X;
+        scoreTieEl.textContent = scoreboard.tie;
+        scoreOEl.textContent = scoreboard.O;
+      }
     }
 
     function resetScoreboard() {
       scoreboard = { X: 0, O: 0, tie: 0 };
+      seriesScore = { X: 0, O: 0 };
       updateScoreboardDisplay();
       clearSeriesExitTimer();
       hideSeriesModal();
@@ -290,7 +389,7 @@
       const ready = Boolean(playerNames.X && playerNames.O);
       const playing = ready && (me === 'X' || me === 'O');
       const spectating = ready && !me && !searching;
-      const showGame = playing || spectating;
+      const showGame = (playing || spectating) && selectedMode;
 
       lobbyEl.classList.toggle('matched', ready);
       gameEl.classList.toggle('hidden', !showGame);
@@ -299,6 +398,8 @@
       if (showGame) {
         statusTextEl.textContent = '';
       }
+      
+      updateRoundIndicator();
     }
 
     function renderAssignment() {
@@ -338,6 +439,7 @@
         }
 
         const canPlay = !value && me && state.turn === me && !state.result;
+        console.log(`[v0] Cell ${index}: value=${value}, me=${me}, turn=${state.turn}, result=${state.result}, canPlay=${canPlay}`);
         cell.disabled = !canPlay;
         if (!canPlay && !value) cell.classList.add('muted');
 
@@ -397,6 +499,20 @@
       }
     }
 
+    modeCards.forEach(card => {
+      card.addEventListener('click', () => {
+        if (myVote || !me) return;
+        
+        const mode = card.dataset.mode;
+        myVote = mode;
+        
+        modeCards.forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        
+        socket.emit('vote_mode', mode);
+      });
+    });
+
     joinForm.addEventListener('submit', (event) => {
       event.preventDefault();
       const name = nameInput.value.trim();
@@ -425,6 +541,11 @@
       };
       me = payload.yourSymbol;
       playerNames = sanitizePlayers(payload.players);
+      modeVotes = payload.modeVotes || { X: null, O: null };
+      selectedMode = payload.selectedMode || null;
+      currentRound = payload.currentRound || 0;
+      totalRounds = payload.totalRounds || 1;
+      seriesScore = payload.seriesScore || { X: 0, O: 0 };
       resetScoreboard();
       searching = false;
       stopOpponentSearch({ clearMessage: true });
@@ -440,6 +561,11 @@
       me = payload.yourSymbol;
       playerNames = sanitizePlayers(payload.players);
       myName = payload.name || myName;
+      modeVotes = payload.modeVotes || { X: null, O: null };
+      selectedMode = payload.selectedMode || null;
+      currentRound = payload.currentRound || 0;
+      totalRounds = payload.totalRounds || 1;
+      seriesScore = payload.seriesScore || { X: 0, O: 0 };
       searching = false;
       const ready = Boolean(playerNames.X && playerNames.O);
       if (ready) {
@@ -479,6 +605,87 @@
       draw();
     });
 
+    socket.on('mode_selection_start', () => {
+      modeVotes = { X: null, O: null };
+      selectedMode = null;
+      myVote = null;
+      
+      modeCards.forEach(c => c.classList.remove('selected'));
+      
+      if (me === 'X' || me === 'O') {
+        showModeSelection();
+      }
+    });
+
+    socket.on('mode_votes', (votes) => {
+      modeVotes = votes;
+      updateVoteStatus();
+    });
+
+    socket.on('mode_selected', (payload) => {
+      selectedMode = payload.mode;
+      totalRounds = payload.totalRounds;
+      currentRound = payload.currentRound;
+      
+      hideModeSelection();
+      lobbyEl.classList.remove('hidden');
+      
+      const modeName = payload.mode;
+      const modeDesc = totalRounds === 1 ? '1 round' : `${totalRounds} rounds`;
+      updateLobbyStatus(`Mode selected: ${modeName} (${modeDesc})`);
+      
+      setTimeout(() => {
+        draw();
+      }, 1000);
+    });
+
+    socket.on('symbol_update', (payload) => {
+      console.log('[v0] Received symbol_update:', payload.yourSymbol, 'previous:', me);
+      me = payload.yourSymbol;
+      console.log('[v0] Updated me to:', me, 'current turn:', state.turn);
+      draw();
+    });
+
+    socket.on('next_round', (payload) => {
+      currentRound = payload.currentRound;
+      totalRounds = payload.totalRounds;
+      seriesScore = payload.seriesScore;
+      playerNames = sanitizePlayers(payload.players);
+      
+      if (payload.symbolMap && payload.symbolMap[socket.id]) {
+        me = payload.symbolMap[socket.id];
+        console.log('[v0] Next round: Updated symbol to', me, 'for round', currentRound);
+      }
+      
+      updateRoundIndicator();
+      updateScoreboardLabels();
+      updateScoreboardDisplay();
+      draw();
+    });
+
+    socket.on('series_complete', (payload) => {
+      const winner = payload.winner;
+      const score = payload.score;
+      
+      if (!seriesModalEl || !seriesMessageEl) return;
+      
+      clearAutoResetTimer();
+      clearSeriesExitTimer();
+      
+      let summary = '';
+      if (winner) {
+        const winnerName = playerLabel(winner);
+        const loser = winner === 'X' ? 'O' : 'X';
+        summary = `${winnerName} wins the series ${score[winner]}-${score[loser]}!`;
+      } else {
+        summary = `Series tied ${score.X}-${score.O}!`;
+      }
+      
+      seriesMessageEl.textContent = summary;
+      seriesModalEl.classList.remove('hidden');
+      scheduleSeriesExit();
+    });
+
     socket.on('series_reset', () => {
       clearAutoResetTimer();
       clearSeriesExitTimer();
@@ -486,6 +693,13 @@
       state = emptyState();
       playerNames = { X: null, O: null };
       me = null;
+      modeVotes = { X: null, O: null };
+      selectedMode = null;
+      currentRound = 0;
+      totalRounds = 1;
+      seriesScore = { X: 0, O: 0 };
+      myVote = null;
+      hideModeSelection();
       const keepName = retainNameNextReset;
       retainNameNextReset = false;
       if (!keepName) {
@@ -512,6 +726,9 @@
       if (typeof newState.turn === 'string' || newState.turn === null) state.turn = newState.turn || 'X';
       state.result = newState.result || null;
       if (newState.players) playerNames = sanitizePlayers(newState.players);
+      if (typeof newState.currentRound === 'number') currentRound = newState.currentRound;
+      if (typeof newState.totalRounds === 'number') totalRounds = newState.totalRounds;
+      if (newState.seriesScore) seriesScore = newState.seriesScore;
 
       if (!state.result) {
         clearAutoResetTimer();
@@ -536,6 +753,7 @@
       joinButton.disabled = false;
       nameInput.disabled = false;
       lobbyEl.classList.remove('matched');
+      hideModeSelection();
       updateLobbyStatus();
     });
 
